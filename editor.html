@@ -104,6 +104,7 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
 .sw.line { height: 3px; border-radius: 2px; width: 16px; }
+.sw.tgt { width: 16px; height: 3px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 1px var(--surface); }
 .sw.hatch { background: repeating-linear-gradient(135deg, var(--s1) 0 2px, var(--s1-soft) 2px 5px); }
 
 .filters { display: grid; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
@@ -128,6 +129,8 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
 .tip b { font-family: var(--f-display); font-stretch: 85%; }
 .tip .r { display: flex; justify-content: space-between; gap: 14px; }
 .tip .r em { color: var(--muted); font-style: normal; }
+.tip .pos { color: var(--good); font-weight: 700; }
+.tip .neg { color: var(--bad); font-weight: 700; }
 
 /* Composição */
 .bars { display: grid; gap: 10px; }
@@ -313,6 +316,7 @@ select.ed { padding-right: 2px; }
           <span><i class="sw" style="background:var(--s1)"></i>Medição lançada</span>
           <span><i class="sw hatch"></i>Medição projetada</span>
           <span><i class="sw line" style="background:var(--s2)"></i>Faturamento (nota emitida)</span>
+          <span><i class="sw tgt"></i>Previsto operacional</span>
         </div>
       </div>
       <div class="filters">
@@ -340,6 +344,7 @@ select.ed { padding-right: 2px; }
         <p id="cartHint">Saldo = valor do contrato − medido antes do painel − medições lançadas depois do mês do medido.</p>
       </div>
       <div class="cart-sum" id="cartSum"></div>
+      <button class="btn add-ct" type="button" data-add>Adicionar contrato</button>
     </div>
     <div class="scroll" id="cartWrap"></div>
   </section>
@@ -350,7 +355,7 @@ select.ed { padding-right: 2px; }
         <h2>Lançamento das medições</h2>
         <p>Digite o valor medido no mês. Salva ao sair da célula ou com Enter. A coluna destacada é o mês de referência.</p>
       </div>
-      <button class="btn primary" id="addBtn" type="button">Adicionar contrato</button>
+      <button class="btn primary add-ct" id="addBtn" type="button" data-add>Adicionar contrato</button>
     </div>
     <div class="grid-legend" id="gridLegend"></div>
     <div class="scroll" id="gridWrap"><div class="empty">Carregando medições…</div></div>
@@ -362,6 +367,7 @@ select.ed { padding-right: 2px; }
         <h2>Previsão de faturamento</h2>
         <p id="fcHint">Valor que deve virar nota em cada mês, pela regra de cada contrato. Em itálico, valores projetados.</p>
       </div>
+      <button class="btn add-ct" type="button" data-add>Adicionar contrato</button>
     </div>
     <div class="scroll" id="fcWrap"></div>
   </section>
@@ -512,17 +518,19 @@ select.ed { padding-right: 2px; }
     const tlEnd = addM(lastData, H);
     const timeline = range(first, tlEnd);
     const monthsFor = list => timeline.map(m => {
-      let med = 0, medP = 0, fat = 0, fatP = 0, incompleto = false;
+      let med = 0, medP = 0, fat = 0, fatP = 0, incompleto = false, prev = 0, prevN = 0, medComPrev = 0, prevComMed = 0;
       const per = [];
       list.forEach(c => {
         const x = val(c, m); if (x.p) medP += x.v; else med += x.v;
+        const pv = (c.previsto || {})[m];
+        if (pv != null) { prev += pv; prevN++; if (x.has) { prevComMed += pv; medComPrev += x.v; } }
         const src = addM(m, -lagOf(c));
         let f = null;
         if (src < first) incompleto = true;
         else { const y = val(c, src); f = y; if (y.p) fatP += y.v; else fat += y.v; }
         per.push({ c, med: x, fat: f });
       });
-      return { m, med, medP, fat, fatP, incompleto, per };
+      return { m, med, medP, fat, fatP, incompleto, per, prev, prevN, medComPrev, prevComMed };
     });
     const months = monthsFor(cs);
     return { cs, first, lastData, gridMonths, timeline, months, monthsFor, val, lagOf, projOf, lastAct, H, tlEnd };
@@ -542,6 +550,7 @@ select.ed { padding-right: 2px; }
     const opts = M.gridMonths.slice().reverse();
     if (!state.ref || !opts.includes(state.ref)) state.ref = state.loaded ? M.lastData : opts[0];
     refSel.innerHTML = opts.map(k => `<option value="${k}"${k === state.ref ? ' selected' : ''}>${lbl(k)}</option>`).join('');
+    document.querySelectorAll('.add-ct').forEach(b => { b.disabled = !canEdit(); });
     const tipoF = $('tipoSel').value;
     if (state.loaded) $('sync').textContent = `${M.cs.length} ${M.cs.length === 1 ? 'contrato' : 'contratos'}${tipoF ? ' de ' + TIPOS[tipoF].toLowerCase() + ` (de ${state.contratos.length})` : ''} · atualizado às ${state.syncAt || ''}`;
     $('gridLegend').innerHTML = Object.keys(STATUS).map(k => `<span><i class="mk ${k}" aria-hidden="true">${STATUS[k].icon}</i>${STATUS[k].t}</span>`).join('') + '<span>Clique no marcador ao lado do valor para registrar data de envio, data de faturamento e nota fiscal.</span>';
@@ -577,6 +586,9 @@ select.ed { padding-right: 2px; }
     const prow = M.months.find(x => x.m === prev);
     const nrow = M.months.find(x => x.m === next);
     const medRef = M.cs.reduce((s, c) => s + ((c.valores || {})[ref] || 0), 0);
+    let prevCmp = 0, medCmp = 0;
+    M.cs.forEach(c => { const pv = (c.previsto || {})[ref], v = (c.valores || {})[ref]; if (pv != null && v != null) { prevCmp += pv; medCmp += v; } });
+    const dPrev = prevCmp > 0 ? (medCmp - prevCmp) / prevCmp : null;
     const nLanc = M.cs.filter(c => (c.valores || {})[ref] != null).length;
     const medPrev = prow ? M.cs.reduce((s, c) => s + ((c.valores || {})[prev] || 0), 0) : 0;
     const d = medPrev ? (medRef - medPrev) / medPrev : null;
@@ -588,7 +600,8 @@ select.ed { padding-right: 2px; }
     const yearCovered = M.tlEnd >= yEnd;
     const tiles = [
       { k: `Medição de ${lbl(ref)}`, v: R(medRef),
-        s: `${nLanc} de ${M.cs.length} contratos lançados` + (d != null ? ` · <span class="delta ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span> vs ${lbl(prev)}` : '') },
+        s: `${nLanc} de ${M.cs.length} contratos lançados` + (d != null ? ` · <span class="delta ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span> vs ${lbl(prev)}` : '')
+          + (dPrev != null ? `<br>Previsto operacional ${R(prevCmp)} · <span class="delta ${dPrev >= 0 ? 'up' : 'down'}">${dPrev >= 0 ? '▲' : '▼'} ${Math.abs(dPrev * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span> medido x previsto` : '') },
       { k: `Faturamento previsto em ${lbl(next)}`, v: nrow ? R(nrow.fat + nrow.fatP) : '—',
         s: nrow ? `${R(nrow.fat)} já medido · ${R(nrow.fatP)} projetado` : 'Fora do horizonte' },
       { k: `Aguardando nota · ${lbl(ref)}`, v: R(aguard),
@@ -653,7 +666,7 @@ select.ed { padding-right: 2px; }
     const filtered = list.length < M.cs.length;
     const data = filtered ? M.monthsFor(list) : M.months;
     if (!list.length) { el.innerHTML = '<div class="empty">Nenhum contrato cadastrado.</div>'; return; }
-    const maxV = niceMax(Math.max(1, ...data.map(d => Math.max(d.med + d.medP, d.incompleto ? 0 : d.fat + d.fatP))) * 1.05);
+    const maxV = niceMax(Math.max(1, ...data.map(d => Math.max(d.med + d.medP, d.prev, d.incompleto ? 0 : d.fat + d.fatP))) * 1.05);
     const y = v => mt + ih - (v / maxV) * ih;
     const bw = iw / data.length;
     const barW = Math.max(6, Math.min(34, bw * 0.56));
@@ -680,6 +693,12 @@ select.ed { padding-right: 2px; }
       }
       if (i === refI || (i % every === 0 && (refI < 0 || Math.abs(i - refI) >= every))) s += `<text x="${cx(i)}" y="${H - 10}" text-anchor="middle" style="${i === refI ? 'fill:var(--ink);font-weight:700' : ''}">${lbl(d.m)}</text>`;
     });
+    // previsto operacional: marca horizontal sobre cada barra
+    data.forEach((d, i) => {
+      if (!d.prevN) return;
+      const w = barW + 10, x0 = cx(i) - w / 2, yy = y(d.prev);
+      s += `<line x1="${x0}" x2="${x0 + w}" y1="${yy}" y2="${yy}" style="stroke:var(--surface)" stroke-width="5" stroke-linecap="round"/><line x1="${x0}" x2="${x0 + w}" y1="${yy}" y2="${yy}" style="stroke:var(--ink)" stroke-width="2.5" stroke-linecap="round"/>`;
+    });
     // linha de faturamento (sólida até último mês sem projeção, tracejada depois)
     const pts = data.map((d, i) => d.incompleto ? null : { x: cx(i), y: y(d.fat + d.fatP), p: d.fatP > 0 });
     let solid = '', dash = '';
@@ -705,9 +724,11 @@ select.ed { padding-right: 2px; }
       tip.innerHTML = `<b>${lbl(d.m)}</b>
         <div class="r"><span>Medição</span><span class="num">${R(d.med + d.medP)}</span></div>
         ${d.medP > 0 ? `<div class="r"><em>dos quais projetado</em><em class="num">${R(d.medP)}</em></div>` : ''}
+        ${d.prevN ? `<div class="r"><span>Previsto operacional</span><span class="num">${R(d.prev)}</span></div>` : ''}
+        ${d.prevComMed > 0 ? (() => { const df = d.medComPrev - d.prevComMed, pc = df / d.prevComMed * 100; return `<div class="r"><span>Medido x previsto${d.prevComMed < d.prev - 0.005 ? ' <em>(contratos já medidos)</em>' : ''}</span><span class="num ${df >= 0 ? 'pos' : 'neg'}">${df >= 0 ? '+' : '−'}${R(Math.abs(df))} · ${df >= 0 ? '+' : '−'}${Math.abs(pc).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span></div>`; })() : ''}
         <div class="r"><span>Faturamento</span><span class="num">${d.incompleto ? 'sem base (jan/26)' : R(d.fat + d.fatP)}</span></div>
         ${!d.incompleto && d.fatP > 0 ? `<div class="r"><em>dos quais projetado</em><em class="num">${R(d.fatP)}</em></div>` : ''}
-        ${filtered && list.length <= 5 ? '<hr>' + d.per.map(p => `<div class="r c"><span>${esc(shortName(p.c.nome))}</span><span class="num${p.med.p ? ' proj' : ''}">${p.med.p ? '≈ ' : ''}${R(p.med.v)}</span></div>`).join('') + '<div class="r c"><em>valores de medição</em></div>' : ''}`;
+        ${filtered && list.length <= 5 ? '<hr>' + d.per.map(p => { const pv = (p.c.previsto || {})[d.m]; return `<div class="r c"><span>${esc(shortName(p.c.nome))}</span><span class="num${p.med.p ? ' proj' : ''}">${p.med.p ? '≈ ' : ''}${R(p.med.v)}${pv != null && p.med.has ? ` <em>/ prev. ${short(pv)}</em>` : ''}</span></div>`; }).join('') + '<div class="r c"><em>medição / previsto operacional</em></div>' : ''}`;
       tip.hidden = false;
       const left = cx(i) * (rect.width / W);
       const tw = tip.offsetWidth;
@@ -868,40 +889,36 @@ select.ed { padding-right: 2px; }
     dirtyT.fc = false;
     const E = canEdit();
     $('fcHint').textContent = E
-      ? 'Valor que deve virar nota em cada mês. Em verde, o previsto operacional; em itálico, projeção automática pela média. Digite um valor para alterar o previsto; apague para voltar ao automático. Meses já lançados alteram o próprio lançamento.'
-      : 'Valor que deve virar nota em cada mês, pela regra de cada contrato. Meses sem lançamento usam o previsto operacional; sem ele, a projeção pela média (em itálico).';
+      ? 'Somente o previsto operacional, no mês em que deve virar nota (regra de cada contrato). Não mistura com o que já foi medido. Digite para alterar; apague para deixar o mês sem previsão.'
+      : 'Previsto operacional no mês em que deve virar nota, pela regra de cada contrato. Não inclui o que já foi medido.';
     const ref = state.ref;
-    const ms = range(ref, addM(M.lastData, M.H));
+    const ms = range(M.first, M.tlEnd);
     if (!M.cs.length) { $('fcWrap').innerHTML = ''; return; }
     let h = `<table><thead><tr><th class="l stick">Contrato</th>`;
     ms.forEach(m => h += `<th class="${m === ref ? 'ref' : ''}">${lbl(m)}</th>`);
     h += `<th>Total</th></tr></thead><tbody>`;
-    const tot = {}, totP = {};
+    const tot = {};
     M.cs.forEach(c => {
       const lag = M.lagOf(c);
       let rowT = 0;
       h += `<tr><td class="l stick"><div class="cname"><span style="font-weight:600;white-space:normal">${esc(c.nome)}</span><small>${esc(c.cliente)}</small></div></td>`;
       ms.forEach(m => {
         const src = addM(m, -lag);
-        const x = src < M.first ? { v: 0, p: false } : M.val(c, src);
-        rowT += x.v; tot[m] = (tot[m] || 0) + x.v; if (x.p) totP[m] = (totP[m] || 0) + x.v;
-        if (E && src >= M.first) {
-          const auto = !x.has && !x.manual;
-          const inp = x.has ? edMoney(c.id, 'valor', src, x.v, '—')
-            : edMoney(c.id, 'previsto', src, x.manual ? x.v : null, x.v ? '≈ ' + num2.format(x.v) : 'sem projeção', x.manual ? 'manual' : '');
-          const sub = x.has ? 'lançado' : x.manual ? 'previsto operacional' : 'automático';
-          h += `<td class="num ${m === ref ? 'ref' : ''}"><div class="ed-pair">${inp}<span class="src">${sub}${lag ? ` · med. ${lbl(src)}` : ''}</span></div></td>`;
-        } else {
-          h += `<td class="num ${m === ref ? 'ref' : ''}"><span class="${x.p ? 'proj' : ''}">${x.v ? (x.p ? '≈ ' : '') + R(x.v) : '—'}</span>${lag && x.v ? `<span class="src">med. ${lbl(src)}</span>` : ''}</td>`;
-        }
+        const pv = (c.previsto || {})[src];
+        if (pv != null) { rowT += pv; tot[m] = (tot[m] || 0) + pv; }
+        const sub = lag ? `<span class="src">med. ${lbl(src)}</span>` : '';
+        if (E) h += `<td class="num ${m === ref ? 'ref' : ''}"><div class="ed-pair">${edMoney(c.id, 'previsto', src, pv, '—', pv != null ? 'manual' : '')}${sub}</div></td>`;
+        else h += `<td class="num ${m === ref ? 'ref' : ''}">${pv != null ? R(pv) : '—'}${pv != null ? sub : ''}</td>`;
       });
       h += `<td class="num"><b>${R(rowT)}</b></td></tr>`;
     });
     let grand = 0;
     h += `</tbody><tfoot><tr><td class="l stick">Total previsto</td>`;
-    ms.forEach(m => { grand += tot[m] || 0; h += `<td class="num ${m === ref ? 'ref' : ''}">${R(tot[m])}${totP[m] ? `<span class="src">${R(totP[m])} projetado</span>` : ''}</td>`; });
+    ms.forEach(m => { grand += tot[m] || 0; h += `<td class="num ${m === ref ? 'ref' : ''}">${tot[m] ? R(tot[m]) : '—'}</td>`; });
     h += `<td class="num">${R(grand)}</td></tr></tfoot></table>`;
     $('fcWrap').innerHTML = h;
+    const refCell = $('fcWrap').querySelector('th.ref');
+    if (refCell && !$('fcWrap').dataset.scrolled) { $('fcWrap').scrollLeft = Math.max(0, refCell.offsetLeft - 260); $('fcWrap').dataset.scrolled = '1'; }
   }
 
   // ---------- Escrita ----------
@@ -1102,6 +1119,14 @@ select.ed { padding-right: 2px; }
         <div class="field"><label>Saldo contratual</label><output id="fSaldo" class="num" style="min-height:36px;display:flex;align-items:center;font-weight:700"></output></div>
       </div>
       <p class="cell-sub" id="fAnt" style="font-size:.82rem;margin:0"></p>
+      ${isNew ? `<div class="sd-box" style="grid-template-columns:1fr">
+        <div><span>Previsão operacional</span><span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink-2)">Valor mensal que entra na previsão de faturamento. Pode ajustar mês a mês depois.</span></div>
+      </div>
+      <div class="two">
+        <div class="field"><label for="fPrevV">Previsto por mês</label><input type="text" id="fPrevV" inputmode="decimal" placeholder="0,00"></div>
+        <div class="field"><label for="fPrevDe">A partir da medição de</label><input type="month" id="fPrevDe" value="${addM(CUR, 0)}"></div>
+        <div class="field"><label for="fPrevAte">Até a medição de</label><input type="month" id="fPrevAte" value=""></div>
+      </div>` : ''}
       <div class="field"><label for="fRegra">Quando a nota é emitida</label><select id="fRegra"${ro ? ' disabled' : ''}>
         <option value="mesmo"${c?.regra !== 'seguinte' ? ' selected' : ''}>No mesmo mês da medição</option>
         <option value="seguinte"${c?.regra === 'seguinte' ? ' selected' : ''}>No mês seguinte à medição</option></select></div>
@@ -1117,6 +1142,7 @@ select.ed { padding-right: 2px; }
     $('fCancel').onclick = close;
     host.addEventListener('keydown', e => { if (e.key === 'Escape') close(); }, { once: true });
     (ro ? $('fCancel') : $('fNome')).focus();
+    if (isNew && $('fPrevAte')) $('fTer').addEventListener('change', () => { if (!$('fPrevAte').value && $('fTer').value) $('fPrevAte').value = $('fTer').value.slice(0, 7); });
     const upSaldo = () => {
       const a = parseBR($('fVc').value), b = parseBR($('fVm').value);
       if (a == null || Number.isNaN(a)) { $('fSaldo').textContent = '—'; $('fAnt').textContent = ''; return; }
@@ -1132,20 +1158,32 @@ select.ed { padding-right: 2px; }
       const vcN = parseBR($('fVc').value), vmN = parseBR($('fVm').value);
       if (Number.isNaN(vcN) || Number.isNaN(vmN)) { toast('Valor inválido. Use o formato 123.456,78.'); return; }
       const extra = { gestor: $('fGestor').value.trim() || null, dataBase: $('fBase').value || null, inicio: $('fIni').value || null, termino: $('fTer').value || null, valorContrato: vcN, medidoInformado: vmN, posicao: $('fPos').value || null };
+      let previsto = null;
+      if (isNew && $('fPrevV')) {
+        const pvv = parseBR($('fPrevV').value);
+        if (Number.isNaN(pvv)) { toast('Previsto mensal inválido. Use o formato 123.456,78.'); return; }
+        if (pvv != null) {
+          const de = $('fPrevDe').value || CUR;
+          const ate = $('fPrevAte').value || ($('fTer').value ? $('fTer').value.slice(0, 7) : addM(de, 11));
+          if (ate < de) { toast('O mês final da previsão está antes do inicial.'); return; }
+          previsto = {};
+          range(de, ate).slice(0, 72).forEach(m => { previsto[m] = pvv; });
+        }
+      }
       const data = { ...extra, nome: $('fNome').value.trim(), cliente: $('fCli').value.trim().toUpperCase(), tipo: $('fTipo').value, regra: $('fRegra').value, regraTexto: $('fTxt').value.trim() };
       if (!data.nome || !data.cliente) return;
       try {
         if (isNew) {
           const id = data.nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) + '-' + Math.random().toString(36).slice(2, 6);
           const ordem = Math.max(0, ...state.contratos.map(x => x.ordem || 0)) + 1;
-          await state.db.doc('contratos/' + id).set({ ...data, ordem, valores: {}, status: {}, lanc: {} });
+          await state.db.doc('contratos/' + id).set({ ...data, ordem, valores: {}, status: {}, lanc: {}, previsto: previsto || {} });
           toast('Contrato adicionado');
         } else { await writeDoc(c.id, data); toast('Contrato atualizado'); }
         close();
       } catch (err) { if (err && err.code === 'quota_exceeded') toast('Limite de contratos atingido. Remova um contrato antigo.'); else handleWriteError(err); }
     });
   }
-  $('addBtn').onclick = () => openSheet(null);
+  document.querySelectorAll('[data-add]').forEach(b => { b.onclick = () => openSheet(null); });
 
   // ---------- Controles ----------
   $('refSel').onchange = e => { state.ref = e.target.value; pref.ref = state.ref; savePref(); render(); };
