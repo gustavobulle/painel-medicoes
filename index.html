@@ -204,6 +204,17 @@ button.chip:hover { outline: 1.5px solid currentColor; }
 .flag.ok { color: var(--good); background: var(--good-bg); }
 .flag.idle { color: var(--idle); background: var(--idle-bg); }
 .cell-sub { display: block; font-size: .72rem; color: var(--muted); }
+input.ed, select.ed { font: inherit; font-size: .86rem; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 3px 6px; min-height: 30px; }
+input.ed:hover, select.ed:hover { border-color: var(--line-2); background: var(--input-bg); }
+input.ed:focus, select.ed:focus { border-color: var(--focus); background: var(--input-bg); outline: none; }
+input.ed.money { width: 132px; text-align: right; font-variant-numeric: tabular-nums; }
+input.ed.txt { width: 150px; }
+input.ed[type="date"] { width: 138px; }
+input.ed[type="month"] { width: 130px; }
+input.ed.manual { color: var(--accent); font-weight: 700; }
+input.ed::placeholder { color: var(--muted); font-style: italic; }
+select.ed { padding-right: 2px; }
+.ed-pair { display: grid; gap: 2px; justify-items: end; }
 .sd-box { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 6px; }
 .sd-box div { display: grid; gap: 1px; min-width: 0; }
 .sd-box span { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
@@ -327,7 +338,7 @@ button.chip:hover { outline: 1.5px solid currentColor; }
     <div class="panel-head">
       <div style="display:grid;gap:2px">
         <h2>Carteira de contratos</h2>
-        <p>Saldo = valor do contrato − medido antes do painel − medições lançadas na grade. Qualquer lançamento ou correção na grade atualiza o saldo na hora.</p>
+        <p id="cartHint">Saldo = valor do contrato − medido antes do painel − medições lançadas depois do mês do medido.</p>
       </div>
       <div class="cart-sum" id="cartSum"></div>
     </div>
@@ -350,7 +361,7 @@ button.chip:hover { outline: 1.5px solid currentColor; }
     <div class="panel-head">
       <div style="display:grid;gap:2px">
         <h2>Previsão de faturamento</h2>
-        <p>Valor que deve virar nota em cada mês, pela regra de cada contrato. Em itálico, valores projetados.</p>
+        <p id="fcHint">Valor que deve virar nota em cada mês, pela regra de cada contrato. Em itálico, valores projetados.</p>
       </div>
     </div>
     <div class="scroll" id="fcWrap"></div>
@@ -434,7 +445,7 @@ button.chip:hover { outline: 1.5px solid currentColor; }
   function build(ctTxt, lcTxt) {
     const avisos = [];
     const C = table(ctTxt, { nome: 'Contrato', cliente: 'Cliente', tipo: 'Tipo de contrato', gestor: 'Gestor', inicio: 'Data de início', termino: 'Término previsto', base: 'Data-base', vc: 'Valor do contrato', mi: 'Medido acumulado informado', pos: 'Medido acumulado até', nota: 'Nota emitida', regra: 'Regra de envio e nota' });
-    const L = table(lcTxt, { contrato: 'Contrato', mes: 'Mês', status: 'Status', valor: 'Valor da medição', envio: 'Data de envio', fatura: 'Data de faturamento', nf: 'Nº da nota fiscal' });
+    const L = table(lcTxt, { contrato: 'Contrato', mes: 'Mês', status: 'Status', valor: 'Valor da medição', envio: 'Data de envio', fatura: 'Data de faturamento', nf: 'Nº da nota fiscal', prev: 'Previsto operacional' });
     if (C.missing.includes('Contrato')) throw new Error('O link de Contratos não tem a coluna "Contrato". Confira se é o link da aba Contratos.');
     if (L.missing.includes('Contrato') || L.missing.includes('Valor da medição')) throw new Error('O link de Lançamentos não tem as colunas "Contrato" e "Valor da medição". Confira se é o link da aba Lancamentos.');
     const docs = {}, byName = {};
@@ -450,20 +461,23 @@ button.chip:hover { outline: 1.5px solid currentColor; }
         inicio: ini || null, termino: ter || null, dataBase: base || null, posicao: pos || null,
         valorContrato: Number.isNaN(vc) ? null : vc, medidoInformado: Number.isNaN(mi) ? null : mi,
         regra: /seguinte/.test(norm(r.nota)) ? 'seguinte' : 'mesmo', regraTexto: r.regra || '', ordem: i + 1,
-        valores: {}, status: {}, lanc: {}
+        valores: {}, status: {}, lanc: {}, previsto: {}
       };
       byName[norm(r.nome)] = docs['contratos/' + id];
     });
     const vistos = {};
     L.rows.forEach((r, i) => {
       const linha = i + 2;
-      if (!r.contrato && !r.valor) return;
+      if (!r.contrato && !r.valor && !r.prev) return;
       const c = byName[norm(r.contrato)];
       if (!c) { avisos.push(`Lançamentos, linha ${linha}: contrato "${r.contrato}" não existe na aba Contratos.`); return; }
       const m = month(r.mes);
       if (!m) { avisos.push(`Lançamentos, linha ${linha}: mês "${r.mes}" não reconhecido (use 01/10/2026).`); return; }
+      const pv = num(r.prev);
+      if (pv != null && !Number.isNaN(pv)) c.previsto[m] = pv;
       const v = num(r.valor);
       if (Number.isNaN(v)) { avisos.push(`Lançamentos, linha ${linha}: valor "${r.valor}" não é um número.`); return; }
+      if (v == null) return;
       const key = c.nome + '|' + m;
       if (vistos[key]) avisos.push(`Lançamentos, linha ${linha}: ${c.nome} já tem lançamento em ${m.slice(5)}/${m.slice(2, 4)} (linha ${vistos[key]}). Ficou valendo a linha ${linha}.`);
       vistos[key] = linha;
@@ -621,6 +635,8 @@ button.chip:hover { outline: 1.5px solid currentColor; }
       const a = (c.valores || {})[m];
       if (a != null) return { v: a, p: false, has: true };
       const la = lastAct[c.id];
+      const pv = (c.previsto || {})[m];
+      if (pv != null && (!la || m > la)) return { v: pv, p: true, has: false, manual: true };
       if (la && m > la) return { v: projOf[c.id], p: true, has: false };
       return { v: 0, p: false, has: false };
     };
@@ -646,6 +662,11 @@ button.chip:hover { outline: 1.5px solid currentColor; }
 
   // ---------- Render ----------
   let gridDirty = false;
+  const dirtyT = { cart: false, fc: false };
+  const canEdit = () => !state.readOnly && !!state.db;
+  const edMoney = (id, k, m, v, ph, cls) => `<input class="ed money${cls ? ' ' + cls : ''}" type="text" inputmode="decimal" id="e-${k}-${esc(id)}-${m || 'x'}" data-c="${esc(id)}" data-k="${k}" data-m="${m || ''}" value="${v != null ? num2.format(v) : ''}" placeholder="${esc(ph || '—')}" aria-label="${k} ${m || ''}">`;
+  const edText = (id, k, v, ph) => `<input class="ed txt" type="text" id="e-${k}-${esc(id)}" data-c="${esc(id)}" data-k="${k}" value="${esc(v || '')}" placeholder="${esc(ph || '—')}" aria-label="${k}">`;
+  const edDate = (id, k, v, type) => `<input class="ed" type="${type}" id="e-${k}-${esc(id)}" data-c="${esc(id)}" data-k="${k}" value="${esc(v || '')}" aria-label="${k}">`;
   function render() {
     const M = model();
     // mês de referência
@@ -656,7 +677,10 @@ button.chip:hover { outline: 1.5px solid currentColor; }
     const tipoF = $('tipoSel').value;
     if (state.loaded) $('sync').textContent = `${M.cs.length} ${M.cs.length === 1 ? 'contrato' : 'contratos'}${tipoF ? ' de ' + TIPOS[tipoF].toLowerCase() + ` (de ${state.contratos.length})` : ''} · atualizado às ${state.syncAt || ''}`;
     $('gridLegend').innerHTML = Object.keys(STATUS).map(k => `<span><i class="mk ${k}" aria-hidden="true">${STATUS[k].icon}</i>${STATUS[k].t}</span>`).join('') + '<span>Clique no marcador ao lado do valor para registrar data de envio, data de faturamento e nota fiscal.</span>';
-    renderKpis(M); renderFilters(M); renderChart(M); renderComp(M); renderCarteira(M); renderForecast(M);
+    renderKpis(M); renderFilters(M); renderChart(M); renderComp(M);
+    const act = document.activeElement, editing = el => el.contains(act) && act.matches('input, select');
+    if (editing($('cartWrap'))) dirtyT.cart = true; else renderCarteira(M);
+    if (editing($('fcWrap'))) dirtyT.fc = true; else renderForecast(M);
     const g = $('gridWrap');
     if (g.contains(document.activeElement) && document.activeElement.classList.contains('cell')) gridDirty = true;
     else renderGrid(M);
@@ -852,7 +876,9 @@ button.chip:hover { outline: 1.5px solid currentColor; }
     M.cs.forEach(c => {
       const rule = RULES[c.regra] || RULES.mesmo;
       h += `<tr><td class="l stick"><div class="cname"><button type="button" data-edit="${esc(c.id)}">${esc(c.nome)}</button><small>${esc(c.cliente)}${c.gestor ? ' · ' + esc(c.gestor) : ''}</small><span class="tipo-tag">${TIPOS[tipoOf(c)]}</span></div></td>`;
-      h += `<td class="l"><span class="rule" title="${esc(c.regraTexto || rule.desc)}">${rule.label}</span></td>`;
+      h += canEdit()
+        ? `<td class="l"><select class="ed" id="e-regra-${esc(c.id)}" data-c="${esc(c.id)}" data-k="regra" title="${esc(c.regraTexto || rule.desc)}" aria-label="Quando a nota é emitida"><option value="mesmo"${c.regra !== 'seguinte' ? ' selected' : ''}>Nota no mês</option><option value="seguinte"${c.regra === 'seguinte' ? ' selected' : ''}>Nota M+1</option></select></td>`
+        : `<td class="l"><span class="rule" title="${esc(c.regraTexto || rule.desc)}">${rule.label}</span></td>`;
       let acc = 0;
       ms.forEach(m => {
         const v = (c.valores || {})[m];
@@ -909,11 +935,10 @@ button.chip:hover { outline: 1.5px solid currentColor; }
       termK = c.termino.slice(0, 7);
     }
     let esgota = null;
-    const p = M.projOf[c.id] || 0;
     if (saldo <= 0) esgota = 'esgotado';
-    else if (p > 0) {
+    else {
       let k = addM(M.lastAct[c.id] || CUR, 1), cum = 0;
-      for (let i = 0; i < 120; i++, k = addM(k, 1)) { cum += p; if (cum >= saldo) { esgota = k; break; } }
+      for (let i = 0; i < 120; i++, k = addM(k, 1)) { cum += M.val(c, k).v || 0; if (cum >= saldo) { esgota = k; break; } }
     }
     return { vc, medido, saldo, pctExec, pctPrazo, termK, esgota, anterior, lancado, pos };
   }
@@ -921,6 +946,8 @@ button.chip:hover { outline: 1.5px solid currentColor; }
   const ICON_OK = '<svg viewBox="0 0 12 12"><path d="M2.2 6.3 4.8 8.8 9.8 3.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function renderCarteira(M) {
     if (!state.loaded) return;
+    dirtyT.cart = false;
+    if (canEdit()) return renderCarteiraEd(M);
     const rows = M.cs.map(c => ({ c, st: stats(M, c) }));
     let tVc = 0, tMed = 0, tSaldo = 0, nAlert = 0, nSem = 0;
     let h = `<table><thead><tr><th class="l stick">Contrato</th><th class="l">Gestor</th><th class="l">Início</th><th class="l">Término previsto</th><th class="l">Data-base</th><th>Valor do contrato</th><th>Medido</th><th>Saldo</th><th class="l">Execução × prazo</th><th class="l">Saldo dura até</th></tr></thead><tbody>`;
@@ -942,9 +969,39 @@ button.chip:hover { outline: 1.5px solid currentColor; }
     $('cartWrap').innerHTML = h;
     $('cartSum').innerHTML = `<div><span>Carteira</span><b class="num">${short(tVc)}</b></div><div><span>Saldo</span><b class="num">${short(tSaldo)}</b></div><div><span>Saldo acaba antes do término</span><b class="num" style="color:${nAlert ? 'var(--bad)' : 'var(--good)'}">${nAlert} ${nAlert === 1 ? 'contrato' : 'contratos'}</b></div>`;
   }
+  function renderCarteiraEd(M) {
+    $('cartHint').textContent = 'Edite direto na tabela: os campos salvam ao sair da célula. Saldo = valor do contrato − medido antes do painel − medições lançadas depois do mês do medido.';
+    let tVc = 0, tMed = 0, tSaldo = 0, nAlert = 0;
+    let h = `<table><thead><tr><th class="l stick">Contrato</th><th class="l">Gestor</th><th class="l">Início</th><th class="l">Término previsto</th><th class="l">Data-base</th><th>Valor do contrato</th><th>Medido informado</th><th>Medido total</th><th>Saldo</th><th class="l">Execução × prazo</th><th class="l">Saldo dura até</th></tr></thead><tbody>`;
+    M.cs.forEach(c => {
+      const st = stats(M, c);
+      h += `<tr><td class="l stick"><div class="cname"><button type="button" data-edit="${esc(c.id)}">${esc(c.nome)}</button><small>${esc(c.cliente)}</small></div></td>`;
+      h += `<td class="l">${edText(c.id, 'gestor', c.gestor, 'Gestor')}</td><td class="l">${edDate(c.id, 'inicio', c.inicio, 'date')}</td><td class="l">${edDate(c.id, 'termino', c.termino, 'date')}</td><td class="l">${edDate(c.id, 'dataBase', c.dataBase, 'month')}</td>`;
+      h += `<td class="num">${edMoney(c.id, 'valorContrato', '', c.valorContrato, 'informe o valor')}</td>`;
+      h += `<td class="num"><div class="ed-pair">${edMoney(c.id, 'medidoInformado', '', c.medidoInformado, '0,00')}<span class="cell-sub">até ${edDate(c.id, 'posicao', c.posicao, 'month')}</span></div></td>`;
+      if (!st) { h += `<td colspan="4" class="l"><span class="cell-sub">Informe o valor do contrato para calcular o saldo.</span></td></tr>`; return; }
+      tVc += st.vc; tMed += st.medido; tSaldo += st.saldo;
+      const fl = Math.min(100, st.pctExec * 100);
+      const meter = `<div class="meter"><div class="trk"><div class="fl" style="width:${fl.toFixed(1)}%"></div>${st.pctPrazo != null ? `<div class="tick" style="left:${(st.pctPrazo * 100).toFixed(1)}%" title="Prazo decorrido"></div>` : ''}</div><small class="num">${(st.pctExec * 100).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}% executado${st.pctPrazo != null ? ` · ${(st.pctPrazo * 100).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}% do prazo` : ''}</small></div>`;
+      let flag;
+      if (st.esgota === 'esgotado') { flag = `<span class="flag bad">${ICON_ALERT}Saldo esgotado</span>`; nAlert++; }
+      else if (!st.esgota) flag = `<span class="flag idle">Sem projeção</span>`;
+      else if (st.termK && st.esgota < st.termK) { flag = `<span class="flag bad">${ICON_ALERT}${lbl(st.esgota)} · antes do término</span>`; nAlert++; }
+      else flag = `<span class="flag ok">${ICON_OK}Cobre o prazo</span><span class="cell-sub">saldo dura até ${lbl(st.esgota)}</span>`;
+      h += `<td class="num">${R(st.medido)}<span class="cell-sub">${st.anterior < 0 ? `<span style="color:var(--bad)">anterior ${R(st.anterior)} · confira</span>` : `${short(st.anterior)} antes + ${short(st.lancado)} na grade`}</span></td><td class="num"><b>${R(st.saldo)}</b></td><td class="l">${meter}</td><td class="l">${flag}</td></tr>`;
+    });
+    h += `</tbody><tfoot><tr><td class="l stick">Total</td><td colspan="4"></td><td class="num">${R(tVc)}</td><td></td><td class="num">${R(tMed)}</td><td class="num">${R(tSaldo)}</td><td class="l num">${tVc ? (tMed / tVc * 100).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + '% executado' : ''}</td><td></td></tr></tfoot></table>`;
+    $('cartWrap').innerHTML = h;
+    $('cartSum').innerHTML = `<div><span>Carteira</span><b class="num">${short(tVc)}</b></div><div><span>Saldo</span><b class="num">${short(tSaldo)}</b></div><div><span>Saldo acaba antes do término</span><b class="num" style="color:${nAlert ? 'var(--bad)' : 'var(--good)'}">${nAlert} ${nAlert === 1 ? 'contrato' : 'contratos'}</b></div>`;
+  }
   $('cartWrap').addEventListener('click', e => { const b = e.target.closest('[data-edit]'); if (b) openSheet(byId(b.dataset.edit)); });
 
   function renderForecast(M) {
+    dirtyT.fc = false;
+    const E = canEdit();
+    $('fcHint').textContent = E
+      ? 'Valor que deve virar nota em cada mês. Em verde, o previsto operacional; em itálico, projeção automática pela média. Digite um valor para alterar o previsto; apague para voltar ao automático. Meses já lançados alteram o próprio lançamento.'
+      : 'Valor que deve virar nota em cada mês, pela regra de cada contrato. Meses sem lançamento usam o previsto operacional; sem ele, a projeção pela média (em itálico).';
     const ref = state.ref;
     const ms = range(ref, addM(M.lastData, M.H));
     if (!M.cs.length) { $('fcWrap').innerHTML = ''; return; }
@@ -960,7 +1017,15 @@ button.chip:hover { outline: 1.5px solid currentColor; }
         const src = addM(m, -lag);
         const x = src < M.first ? { v: 0, p: false } : M.val(c, src);
         rowT += x.v; tot[m] = (tot[m] || 0) + x.v; if (x.p) totP[m] = (totP[m] || 0) + x.v;
-        h += `<td class="num ${m === ref ? 'ref' : ''}"><span class="${x.p ? 'proj' : ''}">${x.v ? (x.p ? '≈ ' : '') + R(x.v) : '—'}</span>${lag && x.v ? `<span class="src">med. ${lbl(src)}</span>` : ''}</td>`;
+        if (E && src >= M.first) {
+          const auto = !x.has && !x.manual;
+          const inp = x.has ? edMoney(c.id, 'valor', src, x.v, '—')
+            : edMoney(c.id, 'previsto', src, x.manual ? x.v : null, x.v ? '≈ ' + num2.format(x.v) : 'sem projeção', x.manual ? 'manual' : '');
+          const sub = x.has ? 'lançado' : x.manual ? 'previsto operacional' : 'automático';
+          h += `<td class="num ${m === ref ? 'ref' : ''}"><div class="ed-pair">${inp}<span class="src">${sub}${lag ? ` · med. ${lbl(src)}` : ''}</span></div></td>`;
+        } else {
+          h += `<td class="num ${m === ref ? 'ref' : ''}"><span class="${x.p ? 'proj' : ''}">${x.v ? (x.p ? '≈ ' : '') + R(x.v) : '—'}</span>${lag && x.v ? `<span class="src">med. ${lbl(src)}</span>` : ''}</td>`;
+        }
       });
       h += `<td class="num"><b>${R(rowT)}</b></td></tr>`;
     });
@@ -1045,6 +1110,51 @@ button.chip:hover { outline: 1.5px solid currentColor; }
   gw.addEventListener('click', e => {
     const b = e.target.closest('[data-edit]'); if (b) { openSheet(byId(b.dataset.edit)); return; }
     const l = e.target.closest('[data-lc]'); if (l) openLanc(byId(l.dataset.lc), l.dataset.m);
+  });
+
+  // ---------- Campos editáveis (carteira, previsão, regra) ----------
+  const LABEL_K = { gestor: 'gestor', inicio: 'início', termino: 'término', dataBase: 'data-base', valorContrato: 'valor do contrato', medidoInformado: 'medido informado', posicao: 'mês do medido', valor: 'lançamento', previsto: 'previsto operacional', regra: 'regra de nota' };
+  function edRaw(el) {
+    const c = byId(el.dataset.c); if (!c) return '';
+    const k = el.dataset.k, m = el.dataset.m;
+    const v = k === 'valor' ? (c.valores || {})[m] : k === 'previsto' ? (c.previsto || {})[m] : c[k];
+    return v;
+  }
+  async function commitEd(el) {
+    const c = byId(el.dataset.c); if (!c) return;
+    const k = el.dataset.k, m = el.dataset.m;
+    const old = edRaw(el) ?? null;
+    let v;
+    if (el.classList.contains('money')) {
+      v = parseBR(el.value);
+      if (Number.isNaN(v)) { toast('Valor inválido. Use o formato 123.456,78.'); el.value = old != null ? num2.format(old) : ''; return; }
+      el.value = v != null ? num2.format(v) : '';
+    } else v = (el.value || '').trim() || null;
+    if (v === old) return;
+    const patch = k === 'valor' ? { valores: { [m]: v } } : k === 'previsto' ? { previsto: { [m]: v } } : { [k]: v };
+    try {
+      await writeDoc(c.id, patch);
+      toast(`${shortName(c.nome)}: ${LABEL_K[k] || k}${m ? ' de ' + lbl(m) : ''} salvo`);
+    } catch (e) { handleWriteError(e); }
+  }
+  ['cartWrap', 'fcWrap', 'gridWrap'].forEach(wid => {
+    const w = $(wid);
+    w.addEventListener('focusin', e => { const el = e.target; if (el.classList && el.classList.contains('ed') && el.classList.contains('money')) { const v = edRaw(el); el.value = v != null ? String(v).replace('.', ',') : ''; el.select(); } });
+    w.addEventListener('change', e => { const el = e.target; if (el.classList && el.classList.contains('ed')) commitEd(el); });
+    w.addEventListener('focusout', e => {
+      const el = e.target; if (!el.classList || !el.classList.contains('ed')) return;
+      if (el.classList.contains('money')) { const v = edRaw(el); if (parseBR(el.value) === (v ?? null)) el.value = v != null ? num2.format(v) : ''; }
+      setTimeout(() => {
+        const act = document.activeElement;
+        if (w.contains(act) && act.matches('input, select')) return;
+        if ((wid === 'cartWrap' && dirtyT.cart) || (wid === 'fcWrap' && dirtyT.fc)) render();
+      }, 0);
+    });
+    w.addEventListener('keydown', e => {
+      const el = e.target; if (!el.classList || !el.classList.contains('ed')) return;
+      if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+      if (e.key === 'Escape') { const v = edRaw(el); el.value = el.classList.contains('money') ? (v != null ? num2.format(v) : '') : (v || ''); el.blur(); }
+    });
   });
 
   // ---------- Painel de lançamento (envio / faturamento) ----------
