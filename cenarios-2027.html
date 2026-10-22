@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Source+Sans+3:wght@400;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 /* Layout: padrão Afirma Evias — cabeçalho com placa verde e régua escura, faixa de indicadores, painéis brancos, grade de lançamento */
 :root{
@@ -155,6 +157,27 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 .esc-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .esc-btn[aria-pressed="true"] small{color:var(--accent-ink);opacity:.85}
 .esc-btn[disabled]{opacity:.45;cursor:default}
+.mapa-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:960px){.mapa-grid{grid-template-columns:minmax(0,1fr)}}
+#mapa{height:520px;border:1px solid var(--line);border-radius:6px;background:var(--soft);z-index:0}
+.mapa-sem{display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink-2);text-align:center;padding:16px}
+.leaflet-container{font-family:var(--f-ui)}
+.leaflet-popup-content{margin:10px 12px;font-size:.84rem;line-height:1.35}
+.leaflet-popup-content b{font-family:var(--f-display);font-stretch:85%}
+.pop-o{display:grid;grid-template-columns:1fr auto;gap:2px 12px;margin-top:6px}
+.pop-o span:nth-child(even){text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.cli-lista{display:grid;gap:8px;max-height:520px;overflow:auto;padding-right:4px}
+.cli-item{border:1px solid var(--line);border-radius:6px;padding:8px 10px;display:grid;gap:4px}
+.cli-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.cli-top b{font-family:var(--f-display);font-stretch:85%;font-size:.95rem}
+.cli-top span{font-variant-numeric:tabular-nums;font-weight:700}
+.cli-bar{height:6px;border-radius:0 3px 3px 0;background:var(--c-re)}
+.cli-obras{font-size:.78rem;color:var(--ink-2);display:grid;gap:1px}
+.cli-obras button{all:unset;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+.cli-obras button:hover{color:var(--fg);text-decoration:underline}
+.cli-obras button:focus-visible{outline:2px solid var(--focus)}
+.leg-mapa{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--ink-2)}
+.leg-mapa i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 </style>
 
 </head>
@@ -203,6 +226,21 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
       <div class="chart" id="ch-contrato"></div>
     </section>
   </div>
+
+  <section class="card" id="sec-mapa">
+    <div class="sheet-head">
+      <div>
+        <h2>Mapa das obras com faturamento previsto em 2027</h2>
+        <p class="note" id="mapa-take">Cada círculo é uma cidade; o tamanho é o faturamento previsto em 2027 e a cor, o escopo principal. Clique no círculo ou na obra da lista para ver os detalhes.</p>
+      </div>
+      <label class="field" for="mapa-zero"><span>Obras sem faturamento</span><select id="mapa-zero"><option value="0">Ocultar</option><option value="1">Mostrar em cinza</option></select></label>
+    </div>
+    <div class="leg-mapa" id="leg-mapa"></div>
+    <div class="mapa-grid">
+      <div id="mapa"></div>
+      <div><div class="cli-lista" id="cli-lista"></div><p class="note" id="mapa-sem-loc"></p></div>
+    </div>
+  </section>
 
   <section class="card" id="sec-abc">
     <div class="sheet-head">
@@ -299,14 +337,14 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 "realista-19":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 410.25 COMPASA M. RICO RONCADOR (DESMOBILIZADO)","escopo":"Controle","local":"Roncador/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":19,"saldo_2027":null,"termino":null},
 "realista-20":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 12.21 COMPASA FÁBRICA","escopo":"Controle","local":"Curitiba/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":20,"saldo_2027":null,"termino":null},
 "realista-21":{"cenario":"realista","cliente":"COMPASA","contrato":"LABO 007.20 COMPASA P&D","escopo":"Controle","local":"Curitiba/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":21,"saldo_2027":null,"termino":null},
-"realista-22":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 035.26 COMPASA NOROESTE *","escopo":"Controle","local":"Maringá/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":22,"saldo_2027":null,"termino":null},
+"realista-22":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 035.26 COMPASA NOROESTE *","escopo":"Controle","local":"Maringá/PR","meses":[55737.88,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07],"ordem":22,"saldo_2027":null,"termino":null},
 "realista-23":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 12.21 COMPASA USINA IBIPORÃ (ENCERRADO)","escopo":"Controle","local":"Ibiporã/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":23,"saldo_2027":null,"termino":null},
 "realista-24":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 022.25 ELLENCO CCR SOROCABA (ENCERRADO)","escopo":"Controle","local":"Sorocaba/SP","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":24,"saldo_2027":null,"termino":null},
 "realista-25":{"cenario":"realista","cliente":"COSAMPA","contrato":"OBRA 275.26 COSAMPA PROMAC LOTE 40","escopo":"Controle","local":"Mangueirinha/PR","meses":[64844.58,78126,78126,78126,78126,78126,78126,78126,78126,78126,78126,78126],"ordem":25,"saldo_2027":null,"termino":null},
 "realista-26":{"cenario":"realista","cliente":"CONSÓRCIO","contrato":"OBRA 274.25 CONSÓRCIO MANOEL RIBAS","escopo":"Controle","local":"Manoel Ribas/PR","meses":[48358.95,58263.79,58263.79,58263.79,116527.58,116527.58,116527.58,116527.58,116527.58,116527.58,116527.58,116527.58],"ordem":26,"saldo_2027":null,"termino":null},
 "realista-27":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - SOROCABA - ELLENCO","escopo":"Controle","local":"Sorocaba/SP","meses":[0,0,97174.87,126327.32,246079.43,246079.43,246079.43,246079.43,323599.23,323599.23,323599.23,194349.73],"ordem":27,"saldo_2027":null,"termino":null},
 "realista-28":{"cenario":"realista","cliente":"GAISSLER","contrato":"OBRA NOVA - RONCADOR - GAISSLER***","escopo":"Controle","local":"Roncador/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":28,"saldo_2027":null,"termino":null},
-"realista-29":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - GUARATUBA - ELLENCO","escopo":"Controle","local":"Guaratuba/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":29,"saldo_2027":null,"termino":null},
+"realista-29":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - GUARATUBA - ELLENCO","escopo":"Controle","local":"Guaratuba/PR","meses":[0,0,0,41157.21,41157.21,41157.21,41157.21,73207.64,73207.64,73207.64,73207.64,73207.64],"ordem":29,"saldo_2027":null,"termino":null},
 "realista-30":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - ROLÂNDIA - ELLENCO","escopo":"Controle","local":"Rolândia/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":30,"saldo_2027":null,"termino":null},
 "realista-31":{"cenario":"realista","cliente":"A DEFINIR","contrato":"OBRA NOVA - PROMAC LOTE 1 *****","escopo":"Controle","local":"Leste/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":31,"saldo_2027":null,"termino":null},
 "realista-32":{"cenario":"realista","cliente":"A DEFINIR","contrato":"OBRA NOVA - PROMAC LOTE 8 *****","escopo":"Controle","local":"Imbaú/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":32,"saldo_2027":null,"termino":null}
@@ -665,7 +703,91 @@ function grafABC() {
   tb.append(body);
   const tf = el('tfoot'); const fr = el('tr'); fr.append(el('td', 'n', ''), el('td', 'c', 'Total'), el('td', 'n', brl.format(tot)), el('td', 'n', '100%'), el('td', 'n', ''), el('td', 'n', '')); tf.append(fr); tb.append(tf);
 }
-function renderGraficos() { grafMensal(); grafTotal(); grafContrato(); grafABC(); }
+/* ---------- mapa ---------- */
+const COORD = {
+  'jacarezinho/pr': [-23.1606, -49.9690], 'uberlandia/mg': [-18.9186, -48.2772], 'marilia/sp': [-22.2139, -49.9458], 'cascavel/pr': [-24.9555, -53.4552],
+  'telemaco borba/pr': [-24.3245, -50.6176], 'arapoti/pr': [-24.1579, -49.8269], 'porto feliz/sp': [-23.2093, -47.5251], 'curitiba/pr': [-25.4284, -49.2733],
+  'sao roque/sp': [-23.5226, -47.1350], 'londrina/pr': [-23.3045, -51.1696], 'reserva/pr': [-24.6503, -50.8466], 'seara/sc': [-27.1490, -52.3108],
+  'roncador/pr': [-24.5958, -52.2730], 'maringa/pr': [-23.4205, -51.9331], 'ibipora/pr': [-23.2659, -51.0522], 'mangueirinha/pr': [-25.9415, -52.1763],
+  'manoel ribas/pr': [-24.5144, -51.6682], 'sorocaba/sp': [-23.5015, -47.4526], 'guaratuba/pr': [-25.8828, -48.5752], 'rolandia/pr': [-23.3101, -51.3659],
+  'imbau/pr': [-24.4479, -50.7533], 'ponta grossa/pr': [-25.0945, -50.1633], 'sao paulo/sp': [-23.5505, -46.6333], 'campinas/sp': [-22.9056, -47.0608],
+  'foz do iguacu/pr': [-25.5163, -54.5854], 'guarapuava/pr': [-25.3907, -51.4628], 'paranagua/pr': [-25.5163, -48.5225], 'joinville/sc': [-26.3045, -48.8487],
+  'florianopolis/sc': [-27.5949, -48.5482], 'umuarama/pr': [-23.7661, -53.3206], 'apucarana/pr': [-23.5508, -51.4614], 'toledo/pr': [-24.7246, -53.7412],
+  'francisco beltrao/pr': [-26.0817, -53.0535], 'pato branco/pr': [-26.2295, -52.6705], 'campo mourao/pr': [-24.0463, -52.3780], 'cornelio procopio/pr': [-23.1814, -50.6464]
+};
+const normLoc = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s*\/\s*/g, '/').trim();
+const ESC_MAPA = {'Supervisão': 'var(--c-re)', 'Controle': 'var(--c-ot)', 'Laboratório central': 'var(--c-pe)', 'Levantamento': '#8a5cc2'};
+const corEsc = (e) => ESC_MAPA[e] || 'var(--c-26)';
+const corReal = (v) => { const m = /^var\((--[^)]+)\)$/.exec(v); return m ? getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || '#2a78d6' : v; };
+let mapa = null, camada = null, marcadores = new Map(), enquadrou = '';
+$('mapa-zero').addEventListener('change', () => grafMapa());
+function grafMapa() {
+  const box = $('mapa');
+  const rows = linhas().filter((x) => x.cenario === 'realista' && filtra(x));
+  const mostrarZero = $('mapa-zero').value === '1';
+  $('leg-mapa').replaceChildren(...Object.keys(ESC_MAPA).map((e) => { const s0 = el('span'); const i0 = el('i'); i0.style.background = corEsc(e); s0.append(i0, document.createTextNode(e)); return s0; }),
+    ...(mostrarZero ? [(() => { const s0 = el('span'); const i0 = el('i'); i0.style.background = 'var(--line-2)'; s0.append(i0, document.createTextNode('Sem faturamento em 2027')); return s0; })()] : []));
+  // agrupa por cidade
+  const cidades = new Map(); const semLoc = [];
+  for (const x of rows) {
+    const tot = soma(x.meses || []); if (tot <= 0.5 && !mostrarZero) continue;
+    const k = normLoc(x.local); const c = COORD[k];
+    if (!c) { if (tot > 0.5) semLoc.push(x); continue; }
+    const o = cidades.get(k) || {k, nome: x.local, c, total: 0, obras: [], esc: {}};
+    o.total += tot; o.obras.push({x, tot}); o.esc[x.escopo] = (o.esc[x.escopo] || 0) + tot; cidades.set(k, o);
+  }
+  const lista = Array.from(cidades.values()).sort((a, b) => b.total - a.total);
+  const totalGeral = soma(rows.map((x) => soma(x.meses || [])));
+  const nCid = lista.filter((o) => o.total > 0.5).length;
+  const nCli = new Set(rows.filter((x) => soma(x.meses || []) > 0.5).map((x) => x.cliente)).size;
+  $('mapa-take').textContent = 'Cada círculo é uma cidade: tamanho = faturamento previsto em 2027, cor = escopo principal. ' + nCid + ' cidades e ' + nCli + ' clientes com faturamento previsto' + (semFiltro() ? '' : ' no filtro escolhido') + '. Clique no círculo ou na obra da lista para ver os detalhes.';
+  // lista por cliente
+  const porCli = new Map();
+  for (const x of rows) { const tot = soma(x.meses || []); if (tot <= 0.5) continue; const o = porCli.get(x.cliente) || {cli: x.cliente, total: 0, obras: []}; o.total += tot; o.obras.push({x, tot}); porCli.set(x.cliente, o); }
+  const clis = Array.from(porCli.values()).sort((a, b) => b.total - a.total);
+  const maxCli = clis.length ? clis[0].total : 1;
+  $('cli-lista').replaceChildren(...clis.map((o) => {
+    const it = el('div', 'cli-item'); const top = el('div', 'cli-top');
+    top.append(el('b', '', nomeCurto(o.cli)), el('span', '', brlc.format(o.total) + (totalGeral ? ' · ' + Math.round(o.total / totalGeral * 100) + '%' : '')));
+    const bar = el('div', 'cli-bar'); bar.style.width = Math.max(2, o.total / maxCli * 100) + '%';
+    const ob = el('div', 'cli-obras');
+    for (const {x, tot} of o.obras.sort((a, b) => b.tot - a.tot)) {
+      const b = el('button'); b.type = 'button'; b.title = 'Ver no mapa';
+      b.append(el('span', '', curto(x.contrato) + ' · ' + (x.local || 'sem local')), el('span', '', brlc.format(tot)));
+      b.addEventListener('click', () => { const m = marcadores.get(normLoc(x.local)); if (m && mapa) { mapa.setView(m.getLatLng(), Math.max(mapa.getZoom(), 8)); m.openPopup(); $('mapa').scrollIntoView({block: 'nearest'}); } });
+      ob.append(b);
+    }
+    it.append(top, bar, ob); return it;
+  }));
+  if (!clis.length) $('cli-lista').replaceChildren(el('div', 'empty', 'Nenhum cliente com faturamento previsto neste filtro.'));
+  $('mapa-sem-loc').textContent = semLoc.length ? 'Sem localização no mapa: ' + semLoc.map((x) => curto(x.contrato) + ' (' + (x.local || 'sem local') + ')').join('; ') + '.' : '';
+  // mapa
+  if (!window.L) { if (!box.querySelector('.mapa-sem')) box.replaceChildren(el('div', 'mapa-sem', 'O mapa precisa de internet para carregar. A lista ao lado mostra os clientes e as obras.')); return; }
+  if (!mapa) {
+    mapa = L.map(box, {scrollWheelZoom: false, attributionControl: true}).setView([-24.5, -50.5], 6);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {maxZoom: 18, subdomains: 'abcd', attribution: '&copy; OpenStreetMap &copy; CARTO'}).addTo(mapa);
+    camada = L.layerGroup().addTo(mapa);
+  }
+  camada.clearLayers(); marcadores = new Map();
+  const maxT = d3.max(lista, (o) => o.total) || 1;
+  const raio = d3.scaleSqrt([0, maxT], [0, 34]);
+  for (const o of lista.slice().sort((a, b) => b.total - a.total)) {
+    const zero = o.total <= 0.5;
+    const princ = Object.entries(o.esc).sort((a, b) => b[1] - a[1])[0][0];
+    const cor = zero ? corReal('var(--line-2)') : corReal(corEsc(princ));
+    const m = L.circleMarker(o.c, {radius: zero ? 5 : Math.max(6, raio(o.total)), color: '#ffffff', weight: 1.5, fillColor: cor, fillOpacity: zero ? 0.6 : 0.78});
+    const pop = el('div'); pop.append(el('b', '', o.nome), el('div', '', zero ? 'Sem faturamento previsto em 2027' : 'Faturamento 2027: ' + brl.format(o.total)));
+    const g = el('div', 'pop-o');
+    for (const {x, tot} of o.obras.sort((a, b) => b.tot - a.tot)) g.append(el('span', '', curto(x.contrato) + ' · ' + nomeCurto(x.cliente) + ' · ' + x.escopo), el('span', '', brlc.format(tot)));
+    pop.append(g);
+    m.bindPopup(pop, {maxWidth: 360}); m.bindTooltip(o.nome + (zero ? '' : ' · ' + brlc.format(o.total)), {direction: 'top', offset: [0, -4]});
+    m.addTo(camada); marcadores.set(o.k, m);
+  }
+  const chave = st.escopo + '|' + st.cliente + '|' + lista.length;
+  if (lista.length && chave !== enquadrou) { mapa.fitBounds(L.latLngBounds(lista.map((o) => o.c)).pad(0.25), {maxZoom: 9}); enquadrou = chave; }
+  setTimeout(() => mapa && mapa.invalidateSize(), 50);
+}
+function renderGraficos() { grafMensal(); grafTotal(); grafContrato(); grafABC(); grafMapa(); }
 
 /* ---------- planilha editável ---------- */
 let tabKey = '';
