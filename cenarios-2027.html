@@ -147,6 +147,14 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 .esc.novo-t{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .rowbtn.del{color:var(--bad)}
 .rowbtn.del.conf{background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.escopos{display:flex;flex-wrap:wrap;gap:8px}
+.esc-btn{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--line-2);background:var(--panel);color:var(--fg);border-radius:8px;padding:8px 14px;cursor:pointer;min-width:9.5rem;text-align:left}
+.esc-btn b{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:.95rem;letter-spacing:.02em}
+.esc-btn small{font-size:.78rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.esc-btn:hover{border-color:var(--ink-2)}
+.esc-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.esc-btn[aria-pressed="true"] small{color:var(--accent-ink);opacity:.85}
+.esc-btn[disabled]{opacity:.45;cursor:default}
 </style>
 
 </head>
@@ -159,9 +167,10 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
     <p class="take" id="take">Carregando os valores dos contratos…</p>
   </header>
 
+  <div class="escopos" role="group" aria-label="Filtrar por escopo" id="f-esc"></div>
+
   <div class="controls" aria-label="Filtros">
     <label class="field" for="f-cli"><span>Cliente</span><select id="f-cli"><option value="Todos">Todos os contratos</option></select></label>
-    <label class="field" for="f-esc"><span>Escopo</span><select id="f-esc"><option value="Todos">Todos os escopos</option></select></label>
     <div class="controls" id="f-cen" role="group" aria-label="Séries nos gráficos"></div>
     <div class="seg" role="group" aria-label="Período">
       <button type="button" id="m-mensal" data-modo="mensal">Mensal</button>
@@ -178,7 +187,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 
   <section class="card" id="sec-mensal">
     <h2 id="mensal-t">Faturamento mensal 2027</h2>
-    <p class="note">Valores por mês da medição (competência). A linha tracejada cinza é a média realizada em 2026 (R$ 2,3 mi/mês, todos os contratos), para comparação. Passe o mouse para ver os valores; os gráficos acompanham as edições da planilha abaixo.</p>
+    <p class="note">Valores por mês da medição (competência). A linha tracejada cinza é a média realizada em 2026: R$ 2,3 mi/mês com todos os escopos e R$ 800 mil/mês no filtro Controle. Passe o mouse para ver os valores; os gráficos acompanham as edições da planilha abaixo.</p>
     <div class="chart" id="ch-mensal"></div>
   </section>
 
@@ -308,7 +317,9 @@ const FONTE = '<!doctype html>\n' + document.documentElement.outerHTML;
 const SC = [
   {k: 'realista', n: 'Realista', cls: 're', v: 'var(--c-re)', crit: 'Cenário realista da planilha de planejamento (posição em 22/10/2026), com os contratos de supervisão, controle, laboratório e levantamento. Valores por mês da medição.'},
 ];
-const MEDIA_2026 = 2300000; // média mensal realizada em 2026, informada pelo usuário
+const MEDIA_2026 = 2300000; // média mensal realizada em 2026, todos os contratos (informada pelo usuário)
+const MEDIA_2026_ESC = {Todos: 2300000, 'Controle': 800000}; // médias de 2026 informadas pelo usuário; escopo sem valor não mostra a linha
+const ESC_ORDEM = ['Supervisão', 'Controle', 'Levantamento', 'Laboratório central'];
 const R26 = {k: 'r26', n: 'Média 2026', cls: 'r26', v: 'var(--c-26)'};
 const byK = Object.fromEntries(SC.map((s) => [s.k, s]));
 const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -344,7 +355,7 @@ const soma = (a) => a.reduce((x, y) => x + (Number(y) || 0), 0);
 const fimMes = (i) => new Date(Date.UTC(2027, i, 1));
 const aposTermino = (r, i) => r.termino && fimMes(i) > new Date(r.termino + 'T00:00:00Z');
 
-function realizado() { return {media: semFiltro() ? MEDIA_2026 : 0, mens: Array(12).fill(null), ini: 0, fim: 11}; }
+function realizado() { return {media: st.cliente === 'Todos' ? (MEDIA_2026_ESC[st.escopo] || 0) : 0, mens: Array(12).fill(null), ini: 0, fim: 11}; }
 function resumo() {
   const out = {};
   for (const s of SC) {
@@ -362,7 +373,8 @@ function resumo() {
 const fCli = $('f-cli');
 fCli.addEventListener('change', () => { st.cliente = fCli.value; renderTudo(); });
 const fEsc = $('f-esc');
-fEsc.addEventListener('change', () => { st.escopo = fEsc.value; renderTudo(); });
+fEsc.addEventListener('click', (e) => { const b = e.target.closest('[data-esc]'); if (!b) return; st.escopo = b.dataset.esc; try { localStorage.setItem('fat27-esc', st.escopo); } catch (x) {} renderTudo(); });
+try { const e0 = localStorage.getItem('fat27-esc'); if (e0) st.escopo = e0; } catch (x) {}
 for (const s of [...SC, R26]) {
   const b = el('button', 'chip'); b.type = 'button'; b.dataset.k = s.k;
   b.append(el('span', 'sw ' + s.cls), document.createTextNode(s.n));
@@ -387,8 +399,15 @@ function renderControles() {
   fCli.replaceChildren(new Option('Todos os contratos', 'Todos'), ...clientes.map((c) => new Option(c, c)));
   fCli.value = clientes.includes(atual) ? atual : 'Todos'; st.cliente = fCli.value;
   const escopos = Array.from(new Set(linhas().map((r) => r.escopo).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  fEsc.replaceChildren(new Option('Todos os escopos', 'Todos'), ...escopos.map((c) => new Option(c, c)));
-  fEsc.value = escopos.includes(st.escopo) ? st.escopo : 'Todos'; st.escopo = fEsc.value;
+  const lista = ['Todos', ...ESC_ORDEM, ...escopos.filter((e) => !ESC_ORDEM.includes(e))];
+  if (!lista.includes(st.escopo) || (st.escopo !== 'Todos' && !escopos.includes(st.escopo))) st.escopo = 'Todos';
+  const totEsc = (e) => soma(linhas().filter((x) => x.cenario === 'realista' && (st.cliente === 'Todos' || x.cliente === st.cliente) && (e === 'Todos' || x.escopo === e)).map((x) => soma(x.meses || [])));
+  fEsc.replaceChildren(...lista.map((e) => {
+    const b = el('button', 'esc-btn'); b.type = 'button'; b.dataset.esc = e; b.setAttribute('aria-pressed', st.escopo === e);
+    if (e !== 'Todos' && !escopos.includes(e)) b.disabled = true;
+    b.append(el('b', '', e === 'Todos' ? 'Todos os escopos' : e), el('small', '', carregado ? brlc.format(totEsc(e)) + ' em 2027' : '—'));
+    return b;
+  }));
   $('l-cli').replaceChildren(...clientes.map((c) => new Option(c)));
   document.querySelectorAll('#f-cen .chip').forEach((b) => b.setAttribute('aria-pressed', st.cen.has(b.dataset.k)));
   document.querySelectorAll('[data-modo]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.modo === st.modo));
@@ -424,7 +443,8 @@ function renderTiles() {
   const porCli = new Map(); for (const x of rs) porCli.set(x.cliente, (porCli.get(x.cliente) || 0) + soma(x.meses || []));
   const topo = Array.from(porCli.entries()).sort((a, b) => b[1] - a[1]);
   box.append(tile('pe', 'Contratos', 'Com faturamento em 2027', String(ativos.length) + ' de ' + rs.length, [['Clientes com faturamento', String(topo.filter((t) => t[1] > 0.5).length)], ['Maior cliente', topo.length ? nomeCurto(topo[0][0]) : '—'], ['Participação do maior', topo.length && r.total ? pct.format(topo[0][1] / r.total).replace('+', '') : '—']]));
-  const c26 = tile('r26', 'Realizado 2026', 'Média mensal realizada · todos os contratos', brl.format(MEDIA_2026), [['Equivale em 12 meses', brlc.format(MEDIA_2026 * 12)]].concat(rz26.media ? [['Realista 2027 vs. 2026', pct.format(r.media / MEDIA_2026 - 1), r.media > MEDIA_2026 ? 'up' : 'down']] : []));
+  const m26 = rz26.media || MEDIA_2026_ESC[st.escopo] || MEDIA_2026;
+  const c26 = tile('r26', 'Realizado 2026', 'Média mensal realizada · ' + (st.escopo === 'Todos' || !MEDIA_2026_ESC[st.escopo] ? 'todos os contratos' : st.escopo.toLowerCase()), brl.format(m26), [['Equivale em 12 meses', brlc.format(m26 * 12)]].concat(rz26.media ? [['Realista 2027 vs. 2026', pct.format(r.media / m26 - 1), r.media > m26 ? 'up' : 'down']] : [['Comparação', st.cliente !== 'Todos' ? 'só sem filtro de cliente' : 'sem média 2026 deste escopo']]));
   if (!rz26.media || !st.cen.has('r26')) c26.style.opacity = '.45';
   box.append(c26);
   const t = $('take');
@@ -459,7 +479,7 @@ function grafMensal() {
     const vals = MES.map((m, i) => { const v = soma(rs.map((r) => (r.meses || [])[i])); acc += v; return st.modo === 'acumulado' ? acc : v; });
     return {s, vals, media: acc / 12, ini: 0, fim: 11};
   });
-  if (st.cen.has('r26') && semFiltro()) series.push({s: R26, vals: Array(12).fill(null), media: MEDIA_2026, ini: 0, fim: 11});
+  if (st.cen.has('r26') && realizado().media) series.push({s: R26, vals: Array(12).fill(null), media: realizado().media, ini: 0, fim: 11});
   const mediaEm = (se, i) => (i < se.ini || i > se.fim ? null : st.modo === 'acumulado' ? se.media * (i - se.ini + 1) : se.media);
   const W = Math.max(280, box.clientWidth), H = 320, mt = 12, mb = 28;
   const max = d3.max(series, (x) => Math.max(d3.max(x.vals) || 0, x.media ? mediaEm(x, x.fim) : 0)) || 1;
