@@ -187,7 +187,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 
   <section class="card" id="sec-mensal">
     <h2 id="mensal-t">Faturamento mensal 2027</h2>
-    <p class="note">Valores por mês da medição (competência). A linha tracejada cinza é a média realizada em 2026: R$ 2,3 mi/mês com todos os escopos e R$ 800 mil/mês no filtro Controle. Passe o mouse para ver os valores; os gráficos acompanham as edições da planilha abaixo.</p>
+    <p class="note">Valores por mês da medição (competência). A linha tracejada cinza é a média realizada em 2026: R$ 2,3 mi/mês com todos os escopos e R$ 900 mil/mês no filtro Controle. Passe o mouse para ver os valores; os gráficos acompanham as edições da planilha abaixo.</p>
     <div class="chart" id="ch-mensal"></div>
   </section>
 
@@ -318,7 +318,7 @@ const SC = [
   {k: 'realista', n: 'Realista', cls: 're', v: 'var(--c-re)', crit: 'Cenário realista da planilha de planejamento (posição em 22/10/2026), com os contratos de supervisão, controle, laboratório e levantamento. Valores por mês da medição.'},
 ];
 const MEDIA_2026 = 2300000; // média mensal realizada em 2026, todos os contratos (informada pelo usuário)
-const MEDIA_2026_ESC = {Todos: 2300000, 'Controle': 800000}; // médias de 2026 informadas pelo usuário; escopo sem valor não mostra a linha
+const MEDIA_2026_ESC = {Todos: 2300000, 'Controle': 900000}; // médias de 2026 informadas pelo usuário; escopo sem valor não mostra a linha
 const ESC_ORDEM = ['Supervisão', 'Controle', 'Levantamento', 'Laboratório central'];
 const R26 = {k: 'r26', n: 'Média 2026', cls: 'r26', v: 'var(--c-26)'};
 const byK = Object.fromEntries(SC.map((s) => [s.k, s]));
