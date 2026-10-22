@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cenários de Faturamento 2027</title>
+<title>Faturamento 2027 Afirma Evias</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -153,16 +153,16 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 <body>
 <div class="wrap">
   <header class="top">
-    <span class="plate">Planejamento · Cenários 2027</span>
-    <h1>Cenários de Faturamento 2027 · Afirma Evias</h1>
-    <span class="eyebrow">Supervisão, controle e laboratório · valores por competência · posição em 22/10/2026</span>
+    <span class="plate">Planejamento · Cenário realista 2027</span>
+    <h1>Faturamento 2027 · Cenário realista · Afirma Evias</h1>
+    <span class="eyebrow">Supervisão, controle, laboratório e levantamento · valores por competência · posição em 22/10/2026</span>
     <p class="take" id="take">Carregando os valores dos contratos…</p>
   </header>
 
   <div class="controls" aria-label="Filtros">
     <label class="field" for="f-cli"><span>Cliente</span><select id="f-cli"><option value="Todos">Todos os contratos</option></select></label>
     <label class="field" for="f-esc"><span>Escopo</span><select id="f-esc"><option value="Todos">Todos os escopos</option></select></label>
-    <div class="controls" id="f-cen" role="group" aria-label="Cenários nos gráficos"></div>
+    <div class="controls" id="f-cen" role="group" aria-label="Séries nos gráficos"></div>
     <div class="seg" role="group" aria-label="Período">
       <button type="button" id="m-mensal" data-modo="mensal">Mensal</button>
       <button type="button" id="m-acum" data-modo="acumulado">Acumulado</button>
@@ -177,20 +177,20 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
   <section class="tiles" id="tiles" aria-label="Resumo por cenário"></section>
 
   <section class="card" id="sec-mensal">
-    <h2 id="mensal-t">Faturamento mensal por cenário</h2>
+    <h2 id="mensal-t">Faturamento mensal 2027</h2>
     <p class="note">Valores por mês da medição (competência). A linha tracejada cinza é a média realizada em 2026 (R$ 2,3 mi/mês, todos os contratos), para comparação. Passe o mouse para ver os valores; os gráficos acompanham as edições da planilha abaixo.</p>
     <div class="chart" id="ch-mensal"></div>
   </section>
 
   <div class="grid2">
     <section class="card">
-      <h2>Total 2027 por cenário</h2>
-      <p class="note">Soma de jan a dez/27 para o filtro escolhido.</p>
+      <h2>Total 2027 por escopo</h2>
+      <p class="note">Soma de jan a dez/27 por tipo de serviço, para o filtro de cliente escolhido.</p>
       <div class="chart" id="ch-total"></div>
     </section>
     <section class="card">
       <h2>Total 2027 por contrato</h2>
-      <p class="note">Ordenado pelo cenário realista.</p>
+      <p class="note">Do maior para o menor; contratos sem faturamento em 2027 ficam de fora.</p>
       <div class="chart" id="ch-contrato"></div>
     </section>
   </div>
@@ -202,7 +202,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
         <p class="note" id="abc-take">Participação de cada cliente no faturamento do ano, do maior para o menor.</p>
       </div>
       <div class="controls">
-        <div class="seg" role="group" aria-label="Cenário da curva ABC" id="abc-cen">
+        <div class="seg" role="group" aria-label="Cenário da curva ABC" id="abc-cen" hidden>
           <button type="button" data-abc="otimista">Otimista</button>
           <button type="button" data-abc="realista">Realista</button>
           <button type="button" data-abc="pessimista">Pessimista</button>
@@ -241,7 +241,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
       </div>
     </div>
     <form class="novo" id="f-novo" hidden novalidate>
-      <h3>Incluir contrato nos 3 cenários</h3>
+      <h3>Incluir contrato</h3>
       <div class="novo-grid">
         <label class="field" for="n-nome"><span>Contrato</span><input id="n-nome" autocomplete="off" placeholder="Ex.: OBRA 245.26 EPR NORTE"></label>
         <label class="field" for="n-cli"><span>Cliente</span><input id="n-cli" list="l-cli" autocomplete="off" placeholder="Ex.: EPR"></label>
@@ -249,16 +249,15 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
         <label class="field" for="n-ini"><span>Início do faturamento</span><select id="n-ini"></select></label>
         <label class="field" for="n-fim"><span>Término previsto</span><input id="n-fim" type="date" min="2026-01-01" max="2035-12-31"></label>
         <label class="field" for="n-saldo"><span>Saldo para 2027 (R$)</span><input id="n-saldo" inputmode="decimal" autocomplete="off" placeholder="Em branco = sem limite"></label>
-        <label class="field" for="n-ot"><span>Média mensal · Otimista (R$)</span><input id="n-ot" inputmode="decimal" autocomplete="off" placeholder="Igual ao realista"></label>
-        <label class="field" for="n-re"><span>Média mensal · Realista (R$)</span><input id="n-re" inputmode="decimal" autocomplete="off" placeholder="Ex.: 250.000,00"></label>
-        <label class="field" for="n-pe"><span>Média mensal · Pessimista (R$)</span><input id="n-pe" inputmode="decimal" autocomplete="off" placeholder="Igual ao realista"></label>
+        <label class="field" for="n-re"><span>Valor mensal (R$)</span><input id="n-re" inputmode="decimal" autocomplete="off" placeholder="Ex.: 250.000,00"></label>
+        <label class="field" for="n-loc"><span>Local</span><input id="n-loc" autocomplete="off" placeholder="Ex.: Curitiba/PR"></label>
       </div>
       <datalist id="l-cli"></datalist>
       <p class="note">O valor mensal entra a partir do mês de início, para no término previsto e não passa do saldo. Depois de incluído, cada mês pode ser ajustado na tabela.</p>
       <p class="note msg" id="n-msg" role="alert"></p>
       <div class="actions"><button type="submit" class="btn primary">Incluir contrato</button><button type="button" class="btn" id="n-cancel">Cancelar</button></div>
     </form>
-    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="tabs" role="tablist" id="tabs" hidden></div>
     <div class="legend">
       <span><i style="background:var(--edit)"></i>Ajustado (diferente da versão recebida)</span>
       <span><i style="background:var(--panel);opacity:.5"></i>Mês após o término do contrato</span>
@@ -270,50 +269,44 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 <div class="toast" id="toast" hidden></div>
 
 <script type="application/json" id="snap">{
-"otimista-01":{"cenario":"otimista","cliente":"EPR","contrato":"OBRA 132.24 EPR LITORAL PIONEIRO","meses":[1382159.24,1382159.24,1382159.24,1382159.24,1382159.24,1382159.24,1382159.24,1382159.24,1382159.24,1382159.24,1382159.24,1382159.24],"ordem":1,"saldo_2027":16585910.87,"termino":"2028-10-06","escopo":"Supervisão"},
-"otimista-02":{"cenario":"otimista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 ECO050","meses":[127672.57,127672.57,127672.57,127672.57,127672.57,52217.15,0,0,0,0,0,0],"ordem":2,"saldo_2027":690580,"termino":"2028-10-17","escopo":"Supervisão"},
-"otimista-03":{"cenario":"otimista","cliente":"EIXO","contrato":"OBRA 1041.23 EIXO","meses":[202774.91,202774.91,202774.91,158194.93,0,0,0,0,0,0,0,0],"ordem":3,"saldo_2027":766519.67,"termino":"2029-01-08","escopo":"Supervisão"},
-"otimista-04":{"cenario":"otimista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 CERRADO","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":4,"saldo_2027":0,"termino":"2028-10-17","escopo":"Supervisão"},
-"otimista-05":{"cenario":"otimista","cliente":"EPR","contrato":"OBRA 022.25 EPR IGUAÇU","meses":[420000,420000,420000,420000,420000,420000,420000,420000,420000,420000,420000,420000],"ordem":5,"saldo_2027":15511313.55,"termino":"2028-10-17","escopo":"Supervisão"},
-"otimista-06":{"cenario":"otimista","cliente":"KLABIN","contrato":"OBRA KLABIN MAX","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":6,"saldo_2027":8032.14,"termino":"2026-12-01","escopo":"Supervisão"},
-"otimista-07":{"cenario":"otimista","cliente":"CART","contrato":"OBRA 578.25 CART CONTROLE","meses":[81703.01,81703.01,81703.01,81703.01,81703.01,81703.01,81703.01,81703,81703,44407,0,0],"ordem":7,"saldo_2027":779734.37,"termino":"2027-07-11","escopo":"Controle"},
-"otimista-08":{"cenario":"otimista","cliente":"KLABIN","contrato":"OBRA 14923 KLABIN ARAPOTI","meses":[135135.56,135135.56,135135.56,135135.56,135135.56,135135.56,135135.56,31118,0,0,0,0],"ordem":8,"saldo_2027":977066.96,"termino":"2027-07-30","escopo":"Supervisão"},
-"otimista-09":{"cenario":"otimista","cliente":"VIA APPIA","contrato":"OBRA CONTROLE","meses":[350000,350000,350000,350000,350000,350000,350000,350000,350000,350000,350000,350000],"ordem":9,"saldo_2027":8693066.82,"termino":"2028-10-09","escopo":"Controle"},
-"otimista-10":{"cenario":"otimista","cliente":"VIA APPIA","contrato":"OBRA GERENCIAMENTO","meses":[400000,400000,400000,400000,400000,400000,400000,400000,400000,400000,400000,400000],"ordem":10,"saldo_2027":5991359.82,"termino":"2028-06-28","escopo":"Supervisão"},
-"otimista-11":{"cenario":"otimista","cliente":"LABORATÓRIO CENTRAL CURITIBA","contrato":"LABORATÓRIO CENTRAL CURITIBA","meses":[300629.87,300629.87,300629.87,300629.87,300629.87,300629.87,300629.87,300629.87,300629.87,300629.87,300629.87,300629.87],"ordem":11,"saldo_2027":null,"termino":null,"escopo":"Laboratório central"},
-"otimista-12":{"cenario":"otimista","cliente":"LEVANTAMENTO","contrato":"LEVANTAMENTO","meses":[30000,30000,30000,30000,30000,30000,30000,30000,30000,30000,30000,30000],"ordem":12,"saldo_2027":null,"termino":null,"escopo":"Levantamento"},
-"pessimista-01":{"cenario":"pessimista","cliente":"EPR","contrato":"OBRA 132.24 EPR LITORAL PIONEIRO","meses":[850000,850000,850000,850000,850000,850000,850000,850000,850000,850000,850000,850000],"ordem":1,"saldo_2027":16585910.87,"termino":"2028-10-06","escopo":"Supervisão"},
-"pessimista-02":{"cenario":"pessimista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 ECO050","meses":[230819.79,230819.79,228940.42,0,0,0,0,0,0,0,0,0],"ordem":2,"saldo_2027":690580,"termino":"2028-10-17","escopo":"Supervisão"},
-"pessimista-03":{"cenario":"pessimista","cliente":"EIXO","contrato":"OBRA 1041.23 EIXO","meses":[188372.58,188372.58,188372.58,188372.58,13029.37,0,0,0,0,0,0,0],"ordem":3,"saldo_2027":766519.67,"termino":"2029-01-08","escopo":"Supervisão"},
-"pessimista-04":{"cenario":"pessimista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 CERRADO","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":4,"saldo_2027":0,"termino":"2028-10-17","escopo":"Supervisão"},
-"pessimista-05":{"cenario":"pessimista","cliente":"EPR","contrato":"OBRA 022.25 EPR IGUAÇU","meses":[290000,290000,290000,290000,290000,290000,290000,290000,290000,290000,290000,290000],"ordem":5,"saldo_2027":15511313.55,"termino":"2028-10-17","escopo":"Supervisão"},
-"pessimista-06":{"cenario":"pessimista","cliente":"KLABIN","contrato":"OBRA KLABIN MAX","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":6,"saldo_2027":8032.14,"termino":"2026-12-01","escopo":"Supervisão"},
-"pessimista-07":{"cenario":"pessimista","cliente":"CART","contrato":"OBRA 578.25 CART CONTROLE","meses":[79470.33,79470.33,79470.33,79470.33,79470.33,79470.33,79470.33,0,0,0,0,0],"ordem":7,"saldo_2027":779734.37,"termino":"2027-07-11","escopo":"Controle"},
-"pessimista-08":{"cenario":"pessimista","cliente":"KLABIN","contrato":"OBRA 14923 KLABIN ARAPOTI","meses":[141287.64,141287.64,141287.64,141287.64,141287.64,141287.64,129341.11,0,0,0,0,0],"ordem":8,"saldo_2027":977066.96,"termino":"2027-07-30","escopo":"Supervisão"},
-"pessimista-09":{"cenario":"pessimista","cliente":"VIA APPIA","contrato":"OBRA CONTROLE","meses":[150000,150000,150000,150000,150000,150000,150000,150000,150000,150000,150000,150000],"ordem":9,"saldo_2027":8693066.82,"termino":"2028-10-09","escopo":"Controle"},
-"pessimista-10":{"cenario":"pessimista","cliente":"VIA APPIA","contrato":"OBRA GERENCIAMENTO","meses":[195370.05,195370.05,195370.05,195370.05,195370.05,195370.05,195370.05,195370.05,195370.05,195370.05,195370.05,195370.05],"ordem":10,"saldo_2027":5991359.82,"termino":"2028-06-28","escopo":"Supervisão"},
-"pessimista-11":{"cenario":"pessimista","cliente":"LABORATÓRIO CENTRAL CURITIBA","contrato":"LABORATÓRIO CENTRAL CURITIBA","meses":[279532.24,279532.24,279532.24,279532.24,279532.24,279532.24,279532.24,279532.24,279532.24,279532.24,279532.24,279532.24],"ordem":11,"saldo_2027":null,"termino":null,"escopo":"Laboratório central"},
-"pessimista-12":{"cenario":"pessimista","cliente":"LEVANTAMENTO","contrato":"LEVANTAMENTO","meses":[10000,10000,10000,10000,10000,10000,10000,10000,10000,10000,10000,10000],"ordem":12,"saldo_2027":null,"termino":null,"escopo":"Levantamento"},
-"realista-01":{"cenario":"realista","cliente":"EPR","contrato":"OBRA 132.24 EPR LITORAL PIONEIRO","meses":[1079279.93,1079279.93,1079279.93,1079279.93,1079279.93,1079279.93,1079279.93,1079279.93,1079279.93,1079279.93,1079279.93,1079279.93],"ordem":1,"saldo_2027":16585910.87,"termino":"2028-10-06","escopo":"Supervisão"},
-"realista-02":{"cenario":"realista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 ECO050","meses":[127672.57,127672.57,127672.57,127672.57,127672.57,52217.15,0,0,0,0,0,0],"ordem":2,"saldo_2027":690580,"termino":"2028-10-17","escopo":"Supervisão"},
-"realista-03":{"cenario":"realista","cliente":"EIXO","contrato":"OBRA 1041.23 EIXO","meses":[202774.91,202774.91,202774.91,158194.93,0,0,0,0,0,0,0,0],"ordem":3,"saldo_2027":766519.67,"termino":"2029-01-08","escopo":"Supervisão"},
-"realista-04":{"cenario":"realista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 CERRADO","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":4,"saldo_2027":0,"termino":"2028-10-17","escopo":"Supervisão"},
-"realista-05":{"cenario":"realista","cliente":"EPR","contrato":"OBRA 022.25 EPR IGUAÇU","meses":[286634.34,286634.34,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04],"ordem":5,"saldo_2027":15511313.55,"termino":"2028-10-17","escopo":"Supervisão"},
-"realista-06":{"cenario":"realista","cliente":"KLABIN","contrato":"OBRA KLABIN MAX","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":6,"saldo_2027":8032.14,"termino":"2026-12-01","escopo":"Supervisão"},
-"realista-07":{"cenario":"realista","cliente":"CART","contrato":"OBRA 578.25 CART CONTROLE","meses":[81703.01,81703.01,81703.01,81703.01,81703.01,81703.01,81703.01,0,0,0,0,0],"ordem":7,"saldo_2027":779734.37,"termino":"2027-07-11","escopo":"Controle"},
-"realista-08":{"cenario":"realista","cliente":"KLABIN","contrato":"OBRA 14923 KLABIN ARAPOTI","meses":[135135.56,135135.56,135135.56,135135.56,135135.56,135135.56,135135.56,0,0,0,0,0],"ordem":8,"saldo_2027":977066.96,"termino":"2027-07-30","escopo":"Supervisão"},
-"realista-09":{"cenario":"realista","cliente":"VIA APPIA","contrato":"OBRA CONTROLE","meses":[222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84],"ordem":9,"saldo_2027":8693066.82,"termino":"2028-10-09","escopo":"Controle"},
-"realista-10":{"cenario":"realista","cliente":"VIA APPIA","contrato":"OBRA GERENCIAMENTO","meses":[220888.47,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89],"ordem":10,"saldo_2027":5991359.82,"termino":"2028-06-28","escopo":"Supervisão"},
-"realista-11":{"cenario":"realista","cliente":"LABORATÓRIO CENTRAL CURITIBA","contrato":"LABORATÓRIO CENTRAL CURITIBA","meses":[220000,250000,275000,300000,300000,300000,300000,300000,300000,300000,270000,220000],"ordem":11,"saldo_2027":null,"termino":null,"escopo":"Laboratório central"},
-"realista-12":{"cenario":"realista","cliente":"LEVANTAMENTO","contrato":"LEVANTAMENTO","meses":[20000,20000,20000,20000,20000,20000,20000,20000,20000,20000,20000,20000],"ordem":12,"saldo_2027":null,"termino":null,"escopo":"Levantamento"}
+"realista-01":{"cenario":"realista","cliente":"EPR","contrato":"OBRA 132.24 EPR LITORAL PIONEIRO","escopo":"Supervisão","local":"Jacarezinho/PR","meses":[915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23],"ordem":1,"saldo_2027":16585910.87,"termino":"2028-10-06"},
+"realista-02":{"cenario":"realista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 ECO050","escopo":"Supervisão","local":"Uberlândia/MG","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":2,"saldo_2027":690580,"termino":"2028-10-17"},
+"realista-03":{"cenario":"realista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 CERRADO","escopo":"Supervisão","local":"Uberlândia/MG","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":3,"saldo_2027":0,"termino":"2028-10-17"},
+"realista-04":{"cenario":"realista","cliente":"EIXO","contrato":"OBRA 1041.23 EIXO","escopo":"Supervisão","local":"Marilia/SP","meses":[202774.91,202774.91,202774.91,158194.93,0,0,0,0,0,0,0,0],"ordem":4,"saldo_2027":766519.67,"termino":"2029-01-08"},
+"realista-05":{"cenario":"realista","cliente":"EPR","contrato":"OBRA 022.25 EPR IGUAÇU","escopo":"Supervisão","local":"Cascavel/PR","meses":[286634.34,286634.34,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04],"ordem":5,"saldo_2027":15511313.55,"termino":"2028-10-17"},
+"realista-06":{"cenario":"realista","cliente":"KLABIN","contrato":"OBRA KLABIN MAX","escopo":"Supervisão","local":"Telemaco Borba/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":6,"saldo_2027":8032.14,"termino":"2026-12-01"},
+"realista-07":{"cenario":"realista","cliente":"CART","contrato":"OBRA 578.25 CART CONTROLE","escopo":"Supervisão","local":"Marilia/SP","meses":[81703.01,81703.01,81703.01,81703.01,81703.01,81703.01,81703.01,0,0,0,0,0],"ordem":7,"saldo_2027":779734.37,"termino":"2027-07-11"},
+"realista-08":{"cenario":"realista","cliente":"KLABIN","contrato":"OBRA 14923 KLABIN ARAPOTI","escopo":"Supervisão","local":"Arapoti/PR","meses":[135135.56,135135.56,135135.56,135135.56,135135.56,135135.56,135135.56,0,0,0,0,0],"ordem":8,"saldo_2027":977066.96,"termino":"2027-07-30"},
+"realista-09":{"cenario":"realista","cliente":"VIA APPIA","contrato":"OBRA CONTROLE","escopo":"Supervisão","local":"Porto Feliz/SP","meses":[222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84],"ordem":9,"saldo_2027":8693066.82,"termino":"2028-10-09"},
+"realista-10":{"cenario":"realista","cliente":"VIA APPIA","contrato":"OBRA GERENCIAMENTO","escopo":"Supervisão","local":"Porto Feliz/SP","meses":[220888.47,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89],"ordem":10,"saldo_2027":5991359.82,"termino":"2028-06-28"},
+"realista-11":{"cenario":"realista","cliente":"LEVANTAMENTO","contrato":"LEVANTAMENTO","escopo":"Levantamento","local":"Curitiba/PR","meses":[20000,20000,20000,20000,20000,20000,20000,20000,20000,20000,20000,20000],"ordem":11,"saldo_2027":null,"termino":null},
+"realista-12":{"cenario":"realista","cliente":"LABORATÓRIO CENTRAL CURITIBA","contrato":"LABORATÓRIO CENTRAL CURITIBA","escopo":"Laboratório central","local":"Curitiba/PR","meses":[220000,250000,275000,300000,300000,300000,300000,300000,300000,300000,270000,220000],"ordem":12,"saldo_2027":null,"termino":null},
+"realista-13":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 15.24  ELLENCO SÃO ROQUE","escopo":"Controle","local":"São Roque/SP","meses":[94536.78,113899.73,0,0,0,0,0,0,0,0,0,0],"ordem":13,"saldo_2027":null,"termino":null},
+"realista-14":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 108.26 PROMAC ELLENCO","escopo":"Controle","local":"Arapoti/PR","meses":[179261.76,215978.02,215978.02,168781.57,168781.57,168781.57,168781.57,168781.57,168781.57,168781.57,130706.57,130706.57],"ordem":14,"saldo_2027":null,"termino":null},
+"realista-15":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 408.26 PROMAC ELLENCO (LONDRINA)","escopo":"Controle","local":"Londrina/PR","meses":[84806.62,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65],"ordem":15,"saldo_2027":null,"termino":null},
+"realista-16":{"cenario":"realista","cliente":"COSAMPA","contrato":"OBRA 090.26 COSAMPA IMBAU RESERVA","escopo":"Controle","local":"Reserva/PR","meses":[90412.46,108930.67,108930.67,135930.67,135930.67,135930.67,108930.67,108930.67,108930.67,108930.67,108930.67,108930.67],"ordem":16,"saldo_2027":null,"termino":null},
+"realista-17":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 153.24 ELLENCO SEARA","escopo":"Controle","local":"Seara/SC","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":17,"saldo_2027":null,"termino":null},
+"realista-18":{"cenario":"realista","cliente":"PREFEITURA DE CURITIBA","contrato":"OBRA 043.25 - SMOP PMC","escopo":"Controle","local":"Curitiba/PR","meses":[39242.28,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79],"ordem":18,"saldo_2027":null,"termino":null},
+"realista-19":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 410.25 COMPASA M. RICO RONCADOR (DESMOBILIZADO)","escopo":"Controle","local":"Roncador/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":19,"saldo_2027":null,"termino":null},
+"realista-20":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 12.21 COMPASA FÁBRICA","escopo":"Controle","local":"Curitiba/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":20,"saldo_2027":null,"termino":null},
+"realista-21":{"cenario":"realista","cliente":"COMPASA","contrato":"LABO 007.20 COMPASA P&D","escopo":"Controle","local":"Curitiba/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":21,"saldo_2027":null,"termino":null},
+"realista-22":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 035.26 COMPASA NOROESTE *","escopo":"Controle","local":"Maringá/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":22,"saldo_2027":null,"termino":null},
+"realista-23":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 12.21 COMPASA USINA IBIPORÃ (ENCERRADO)","escopo":"Controle","local":"Ibiporã/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":23,"saldo_2027":null,"termino":null},
+"realista-24":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 022.25 ELLENCO CCR SOROCABA (ENCERRADO)","escopo":"Controle","local":"Sorocaba/SP","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":24,"saldo_2027":null,"termino":null},
+"realista-25":{"cenario":"realista","cliente":"COSAMPA","contrato":"OBRA 275.26 COSAMPA PROMAC LOTE 40","escopo":"Controle","local":"Mangueirinha/PR","meses":[64844.58,78126,78126,78126,78126,78126,78126,78126,78126,78126,78126,78126],"ordem":25,"saldo_2027":null,"termino":null},
+"realista-26":{"cenario":"realista","cliente":"CONSÓRCIO","contrato":"OBRA 274.25 CONSÓRCIO MANOEL RIBAS","escopo":"Controle","local":"Manoel Ribas/PR","meses":[48358.95,58263.79,58263.79,58263.79,116527.58,116527.58,116527.58,116527.58,116527.58,116527.58,116527.58,116527.58],"ordem":26,"saldo_2027":null,"termino":null},
+"realista-27":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - SOROCABA - ELLENCO","escopo":"Controle","local":"Sorocaba/SP","meses":[0,0,97174.87,126327.32,246079.43,246079.43,246079.43,246079.43,323599.23,323599.23,323599.23,194349.73],"ordem":27,"saldo_2027":null,"termino":null},
+"realista-28":{"cenario":"realista","cliente":"GAISSLER","contrato":"OBRA NOVA - RONCADOR - GAISSLER***","escopo":"Controle","local":"Roncador/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":28,"saldo_2027":null,"termino":null},
+"realista-29":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - GUARATUBA - ELLENCO","escopo":"Controle","local":"Guaratuba/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":29,"saldo_2027":null,"termino":null},
+"realista-30":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - ROLÂNDIA - ELLENCO","escopo":"Controle","local":"Rolândia/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":30,"saldo_2027":null,"termino":null},
+"realista-31":{"cenario":"realista","cliente":"A DEFINIR","contrato":"OBRA NOVA - PROMAC LOTE 1 *****","escopo":"Controle","local":"Leste/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":31,"saldo_2027":null,"termino":null},
+"realista-32":{"cenario":"realista","cliente":"A DEFINIR","contrato":"OBRA NOVA - PROMAC LOTE 8 *****","escopo":"Controle","local":"Imbaú/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":32,"saldo_2027":null,"termino":null}
 }</script>
 <script>
 const FONTE = '<!doctype html>\n' + document.documentElement.outerHTML;
 (() => {
 const SC = [
-  {k: 'otimista', n: 'Otimista', cls: 'ot', v: 'var(--c-ot)', crit: 'EPR Litoral Pioneiro, Via Appia Controle e Via Appia Gerenciamento consomem todo o saldo em 2027 (saldo ÷ 12); demais contratos com a média do planejamento.'},
-  {k: 'realista', n: 'Realista', cls: 're', v: 'var(--c-re)', crit: 'Premissas da aba Planejamento 2027: média adotada por contrato, limitada ao saldo e ao término.'},
-  {k: 'pessimista', n: 'Pessimista', cls: 'pe', v: 'var(--c-pe)', crit: 'Todos os contratos mantêm a média de faturamento de 2026, limitada ao saldo e ao término.'},
+  {k: 'realista', n: 'Realista', cls: 're', v: 'var(--c-re)', crit: 'Cenário realista da planilha de planejamento (posição em 22/10/2026), com os contratos de supervisão, controle, laboratório e levantamento. Valores por mês da medição.'},
 ];
 const MEDIA_2026 = 2300000; // média mensal realizada em 2026, informada pelo usuário
 const R26 = {k: 'r26', n: 'Média 2026', cls: 'r26', v: 'var(--c-26)'};
@@ -329,6 +322,7 @@ const $ = (id) => document.getElementById(id);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
 
 const st = {cliente: 'Todos', cen: new Set([...SC.map((s) => s.k), 'r26']), modo: 'mensal', tipo: 'linhas', tab: 'realista', media: true, abcCen: 'realista', abcPor: 'cliente', escopo: 'Todos'};
+const ESC_COR = ['var(--c-re)', 'var(--c-ot)', 'var(--c-pe)', '#8a5cc2', 'var(--c-26)', '#b8860b'];
 try { const t = localStorage.getItem('cen27-tab'); if (byK[t]) st.tab = t; } catch (e) {}
 let docs = new Map(); // id -> data
 let db = null, podeEditar = true, carregado = false;
@@ -407,42 +401,36 @@ function renderControles() {
 
 /* ---------- resumo ---------- */
 function renderTiles() {
-  const R = resumo(); const rz26 = realizado();
+  const R = resumo(); const rz26 = realizado(); const r = R.realista;
   const box = $('tiles'); box.replaceChildren();
-  for (const s of SC) {
-    const r = R[s.k];
-    const c = el('article', 'card tile ' + s.cls); if (!st.cen.has(s.k)) c.style.opacity = '.45';
-    const nm = el('div', 'tile-name'); nm.append(el('span', 'sw ' + s.cls), document.createTextNode(s.n)); c.append(nm);
-    c.append(el('div', 'note', 'Faturamento 2027'), el('div', 'big', carregado ? brl.format(r.total) : '—'));
+  const rs = linhas().filter((x) => x.cenario === 'realista' && filtra(x));
+  const ativos = rs.filter((x) => soma(x.meses || []) > 0.5);
+  const tile = (cls, nome, rot, big, linhas_) => {
+    const c = el('article', 'card tile ' + cls);
+    const nm = el('div', 'tile-name'); nm.append(el('span', 'sw ' + cls), document.createTextNode(nome)); c.append(nm);
+    c.append(el('div', 'note', rot), el('div', 'big', big));
     const dl = el('dl', 'kv');
-    const add = (k, v, cls) => { dl.append(el('dt', '', k)); const dd = el('dd', cls || '', v); dl.append(dd); };
-    add('Média mensal', carregado ? brlc.format(r.media) : '—');
-    add('Saldo em dez/27', carregado ? brlc.format(r.saldoFim) : '—');
-    if (s.k === 'realista') add('vs. realista', 'referência');
-    else add('vs. realista', carregado ? (r.dif > 0 ? '+' : '') + brlc.format(r.dif) + ' (' + pct.format(r.difPct) + ')' : '—', r.dif > 0 ? 'up' : r.dif < 0 ? 'down' : '');
-    if (r.excede) add('Contratos acima do saldo', String(r.excede), 'down');
-    if (carregado && rz26.media) { const d = r.media / rz26.media - 1; add('Média vs. 2026', pct.format(d), d > 0 ? 'up' : d < 0 ? 'down' : ''); }
-    c.append(dl); box.append(c);
-  }
-  {
-    const c = el('article', 'card tile r26'); if (!st.cen.has('r26')) c.style.opacity = '.45';
-    const nm = el('div', 'tile-name'); nm.append(el('span', 'sw r26'), document.createTextNode('Realizado 2026')); c.append(nm);
-    c.append(el('div', 'note', 'Média mensal realizada · todos os contratos'), el('div', 'big', brl.format(MEDIA_2026)));
-    if (!rz26.media) c.style.opacity = '.45';
-    const dl = el('dl', 'kv');
-    const add = (k, v, cls) => { dl.append(el('dt', '', k), el('dd', cls || '', v)); };
-    add('Equivale em 12 meses', brlc.format(MEDIA_2026 * 12));
-    if (carregado && rz26.media) { const d = R.realista.media / MEDIA_2026 - 1; add('Realista 2027 vs. 2026', pct.format(d), d > 0 ? 'up' : d < 0 ? 'down' : ''); }
-    c.append(dl); box.append(c);
-  }
-  const t = $('take');
+    for (const [k, v, cl] of linhas_) { dl.append(el('dt', '', k), el('dd', cl || '', v)); }
+    c.append(dl); return c;
+  };
   if (!carregado) return;
+  const linhasR = [['Média mensal', brlc.format(r.media)], ['Saldo contratual em dez/27', brlc.format(r.saldoFim)]];
+  if (r.excede) linhasR.push(['Contratos acima do saldo', String(r.excede), 'down']);
+  if (rz26.media) { const d = r.media / rz26.media - 1; linhasR.push(['Média vs. 2026', pct.format(d), d > 0 ? 'up' : d < 0 ? 'down' : '']); }
+  box.append(tile('re', 'Realista', 'Faturamento 2027', brl.format(r.total), linhasR));
+  const porMes = MES.map((m, i) => soma(rs.map((x) => (x.meses || [])[i])));
+  const iMax = porMes.indexOf(Math.max(...porMes)), iMin = porMes.indexOf(Math.min(...porMes));
+  box.append(tile('ot', 'Meses', 'Maior mês', brlc.format(porMes[iMax]) + ' · ' + MES[iMax], [['Menor mês', brlc.format(porMes[iMin]) + ' · ' + MES[iMin]], ['1º semestre', brlc.format(soma(porMes.slice(0, 6)))], ['2º semestre', brlc.format(soma(porMes.slice(6)))]]));
+  const porCli = new Map(); for (const x of rs) porCli.set(x.cliente, (porCli.get(x.cliente) || 0) + soma(x.meses || []));
+  const topo = Array.from(porCli.entries()).sort((a, b) => b[1] - a[1]);
+  box.append(tile('pe', 'Contratos', 'Com faturamento em 2027', String(ativos.length) + ' de ' + rs.length, [['Clientes com faturamento', String(topo.filter((t) => t[1] > 0.5).length)], ['Maior cliente', topo.length ? nomeCurto(topo[0][0]) : '—'], ['Participação do maior', topo.length && r.total ? pct.format(topo[0][1] / r.total).replace('+', '') : '—']]));
+  const c26 = tile('r26', 'Realizado 2026', 'Média mensal realizada · todos os contratos', brl.format(MEDIA_2026), [['Equivale em 12 meses', brlc.format(MEDIA_2026 * 12)]].concat(rz26.media ? [['Realista 2027 vs. 2026', pct.format(r.media / MEDIA_2026 - 1), r.media > MEDIA_2026 ? 'up' : 'down']] : []));
+  if (!rz26.media || !st.cen.has('r26')) c26.style.opacity = '.45';
+  box.append(c26);
+  const t = $('take');
   const esc = semFiltro() ? 'todos os contratos' : 'os contratos' + (st.cliente !== 'Todos' ? ' ' + st.cliente : '') + (st.escopo !== 'Todos' ? ' de ' + st.escopo.toLowerCase() : '');
-  t.replaceChildren(document.createTextNode('Para ' + esc + ', 2027 fecha entre '), el('b', '', brlc.format(R.pessimista.total)),
-    document.createTextNode(' no pessimista e '), el('b', '', brlc.format(R.otimista.total)),
-    document.createTextNode(' no otimista. O realista prevê '), el('b', '', brlc.format(R.realista.total)), document.createTextNode('.'));
-  if (rz26.media) t.append(document.createTextNode(' Em 2026, a média realizada foi '), el('b', '', brlc.format(rz26.media) + '/mês'),
-    document.createTextNode(', contra ' + brlc.format(R.realista.media) + '/mês no realista (' + pct.format(R.realista.media / rz26.media - 1) + ').'));
+  t.replaceChildren(document.createTextNode('No cenário realista, ' + esc + ' somam '), el('b', '', brlc.format(r.total)), document.createTextNode(' em 2027, média de '), el('b', '', brlc.format(r.media) + '/mês'), document.createTextNode('.'));
+  if (rz26.media) t.append(document.createTextNode(' Em 2026, a média realizada foi ' + brlc.format(rz26.media) + '/mês (' + pct.format(r.media / rz26.media - 1) + ' em 2027).'));
 }
 
 /* ---------- gráficos ---------- */
@@ -462,7 +450,7 @@ function vazio(box, msg) { box.replaceChildren(el('div', 'empty', msg)); }
 
 function grafMensal() {
   const box = $('ch-mensal'); box.querySelectorAll('svg,.empty').forEach((n) => n.remove());
-  $('mensal-t').textContent = st.modo === 'acumulado' ? 'Faturamento acumulado por cenário' : 'Faturamento mensal por cenário';
+  $('mensal-t').textContent = st.modo === 'acumulado' ? 'Faturamento acumulado 2027' : 'Faturamento mensal 2027';
   if (!carregado) return vazio(box, msgVazio());
   const cen = SC.filter((s) => st.cen.has(s.k));
   const series = cen.map((s) => {
@@ -519,18 +507,22 @@ function grafMensal() {
 function grafTotal() {
   const box = $('ch-total'); box.querySelectorAll('svg,.empty').forEach((n) => n.remove());
   if (!carregado) return vazio(box, msgVazio());
-  const R = resumo(); const rows = SC.filter((s) => st.cen.has(s.k)).map((s) => ({s, total: R[s.k].total}));
+  const por = new Map();
+  for (const x of linhas().filter((x) => x.cenario === 'realista' && filtra(x))) por.set(x.escopo || 'Sem escopo', (por.get(x.escopo || 'Sem escopo') || 0) + soma(x.meses || []));
+  const rows = Array.from(por.entries()).map(([nome, total]) => ({nome, total})).filter((o) => o.total > 0.5).sort((a, b) => b.total - a.total);
+  if (!rows.length) return vazio(box, 'Nenhum faturamento em 2027 para este filtro.');
+  const tot = soma(rows.map((o) => o.total));
   const W = Math.max(260, box.clientWidth), H = 300, mt = 26, mb = 28, mr = 8;
-  const y = d3.scaleLinear([0, (d3.max(rows, (r) => r.total) || 1) * 1.08], [H - mb, mt]).nice();
-  const svg = d3.select(box).insert('svg', ':first-child').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Total 2027 por cenário');
+  const y = d3.scaleLinear([0, rows[0].total * 1.12], [H - mb, mt]).nice();
+  const svg = d3.select(box).insert('svg', ':first-child').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Total 2027 por escopo');
   const ml = Math.ceil(medir(svg, y.ticks(5).map((v) => brlc.format(v)))) + 14;
-  const x = d3.scaleBand(rows.map((r) => r.s.k), [ml, W - mr]).padding(0.35);
+  const x = d3.scaleBand(rows.map((o) => o.nome), [ml, W - mr]).padding(0.3);
   const g = svg.append('g'); eixoY(g, y, W, ml, mr);
   g.append('line').attr('x1', ml).attr('x2', W - mr).attr('y1', y(0)).attr('y2', y(0)).style('stroke', 'var(--line-2)');
-  const bw = Math.min(64, x.bandwidth()); const bx = (r) => x(r.s.k) + (x.bandwidth() - bw) / 2;
-  g.selectAll('rect.b').data(rows).join('rect').attr('x', bx).attr('width', bw).attr('y', (r) => y(r.total)).attr('height', (r) => Math.max(0, y(0) - y(r.total))).attr('rx', 4).style('fill', (r) => r.s.v);
-  g.selectAll('text.v').data(rows).join('text').attr('x', (r) => bx(r) + bw / 2).attr('y', (r) => y(r.total) - 8).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--fg)').text((r) => brlc.format(r.total));
-  g.selectAll('text.c').data(rows).join('text').attr('x', (r) => bx(r) + bw / 2).attr('y', H - 8).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--muted)').text((r) => r.s.n);
+  const bw = Math.min(64, x.bandwidth()); const bx = (o) => x(o.nome) + (x.bandwidth() - bw) / 2;
+  g.selectAll('rect.b').data(rows).join('rect').attr('x', bx).attr('width', bw).attr('y', (o) => y(o.total)).attr('height', (o) => Math.max(0, y(0) - y(o.total))).attr('rx', 4).style('fill', (o, i) => ESC_COR[i % ESC_COR.length]);
+  g.selectAll('text.v').data(rows).join('text').attr('x', (o) => bx(o) + bw / 2).attr('y', (o) => y(o.total) - 8).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--fg)').text((o) => brlc.format(o.total) + ' · ' + Math.round(o.total / tot * 100) + '%');
+  g.selectAll('text.c').data(rows).join('text').attr('x', (o) => bx(o) + bw / 2).attr('y', H - 8).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--muted)').text((o) => o.nome);
 }
 function grafContrato() {
   const box = $('ch-contrato'); box.querySelectorAll('svg,.empty').forEach((n) => n.remove());
@@ -673,7 +665,7 @@ function construir(rows) {
   const body = el('tbody');
   for (const r of rows) {
     const tr = el('tr'); tr.dataset.id = r.id;
-    const c = el('td', 'c'); c.append(el('span', '', curto(r.contrato)), el('span', 'cli', r.cliente + (r.termino ? ' · término ' + new Date(r.termino + 'T00:00:00Z').toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : ''))); c.append(el('span', 'flag'));
+    const c = el('td', 'c'); c.append(el('span', '', curto(r.contrato)), el('span', 'cli', r.cliente + (r.local ? ' · ' + r.local : '') + (r.termino ? ' · término ' + new Date(r.termino + 'T00:00:00Z').toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : ''))); c.append(el('span', 'flag'));
     const tg = el('span'); tg.append(el('span', 'esc', r.escopo || 'Sem escopo')); if (r.novo) tg.append(el('span', 'esc novo-t', 'Incluído')); c.insertBefore(tg, c.querySelector('.flag'));
     tr.append(c, el('td', 'n saldo', typeof r.saldo_2027 === 'number' ? n0.format(r.saldo_2027) : 'sem limite'));
     MES.forEach((m, i) => {
@@ -690,7 +682,7 @@ function construir(rows) {
     b.addEventListener('click', () => gravar(r.id, (docs.get(r.id).original || []).slice(), 'Linha restaurada'));
     tdb.append(b);
     if (r.novo) {
-      const del = el('button', 'rowbtn del', 'Excluir'); del.type = 'button'; del.title = 'Excluir este contrato dos 3 cenários';
+      const del = el('button', 'rowbtn del', 'Excluir'); del.type = 'button'; del.title = 'Excluir este contrato';
       del.addEventListener('click', () => {
         if (!del.classList.contains('conf')) { del.classList.add('conf'); del.textContent = 'Confirmar exclusão'; setTimeout(() => { del.classList.remove('conf'); del.textContent = 'Excluir'; }, 4000); return; }
         excluirContrato(r.id);
@@ -813,10 +805,7 @@ fNovo.addEventListener('submit', (e) => {
   if (linhas().some((r) => r.contrato.toLowerCase() === nome.toLowerCase())) return msg('Já existe um contrato com esse nome no painel.', 'n-nome');
   const lido = (campo) => { const t = $(campo).value.trim(); return t === '' ? null : parseBR(t); };
   const re = lido('n-re');
-  if (re === null || !(re > 0)) return msg('Informe a média mensal do cenário realista, por exemplo 250.000,00.', 'n-re');
-  const ot = $('n-ot').value.trim() === '' ? re : lido('n-ot'), pe = $('n-pe').value.trim() === '' ? re : lido('n-pe');
-  if (ot === null) return msg('Valor do otimista inválido.', 'n-ot');
-  if (pe === null) return msg('Valor do pessimista inválido.', 'n-pe');
+  if (re === null || !(re > 0)) return msg('Informe o valor mensal, por exemplo 250.000,00.', 'n-re');
   const saldoTxt = $('n-saldo').value.trim(); const saldo = saldoTxt === '' ? null : parseBR(saldoTxt);
   if (saldoTxt !== '' && saldo === null) return msg('Saldo inválido. Deixe em branco se não houver limite.', 'n-saldo');
   const fim = $('n-fim').value && $('n-fim').validity.valid ? $('n-fim').value : null;
@@ -832,15 +821,15 @@ fNovo.addEventListener('submit', (e) => {
   };
   const base = 'novo' + Date.now().toString(36);
   const ordem = 100 + linhas().filter((r) => r.novo).length;
-  for (const [k, valor] of [['otimista', ot], ['realista', re], ['pessimista', pe]]) {
+  for (const [k, valor] of [['realista', re]]) {
     const meses = gerar(valor);
-    docs.set(k + '-' + base, {cenario: k, cliente, contrato: nome.toUpperCase(), escopo, meses, original: meses.slice(), ordem, saldo_2027: saldo, termino: fim, novo: true});
+    docs.set(k + '-' + base, {cenario: k, cliente, contrato: nome.toUpperCase(), escopo, local: $('n-loc').value.trim(), meses, original: meses.slice(), ordem, saldo_2027: saldo, termino: fim, novo: true});
   }
   salvarNovos();
   fNovo.reset(); fNovo.hidden = true;
   renderTudo(true);
   $('status').textContent = semArmazenamento ? 'Ajustes valem só enquanto a página estiver aberta' : 'Contrato incluído neste navegador';
-  toast('Contrato incluído nos 3 cenários.');
+  toast('Contrato incluído.');
 });
 function excluirContrato(id) {
   const b = baseDe(id);
@@ -870,11 +859,11 @@ $('b-copia').addEventListener('click', () => {
 /* CSV */
 let downloads = null;
 $('b-csv').addEventListener('click', async () => {
-  const lin = [['Cenário', 'Contrato', 'Cliente', 'Escopo', 'Saldo para 2027', ...MES.map((m) => m + '/27'), 'Total 2027'].join(';')];
+  const lin = [['Cenário', 'Contrato', 'Cliente', 'Escopo', 'Local', 'Saldo para 2027', ...MES.map((m) => m + '/27'), 'Total 2027'].join(';')];
   for (const s of SC) for (const r of linhas().filter((x) => x.cenario === s.k).sort((a, b) => a.ordem - b.ordem)) {
-    lin.push([s.n, r.contrato, r.cliente, r.escopo || '', typeof r.saldo_2027 === 'number' ? n2.format(r.saldo_2027) : '', ...(r.meses || []).map((v) => n2.format(v)), n2.format(soma(r.meses || []))].map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(';'));
+    lin.push([s.n, r.contrato, r.cliente, r.escopo || '', r.local || '', typeof r.saldo_2027 === 'number' ? n2.format(r.saldo_2027) : '', ...(r.meses || []).map((v) => n2.format(v)), n2.format(soma(r.meses || []))].map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(';'));
   }
-  baixar('cenarios_faturamento_2027.csv', '\ufeff' + lin.join('\r\n'), 'text/csv;charset=utf-8'); return;
+  baixar('faturamento_2027_realista.csv', '\ufeff' + lin.join('\r\n'), 'text/csv;charset=utf-8'); return;
   try { await downloads.save({filename: 'cenarios_faturamento_2027.csv', data: '\ufeff' + lin.join('\r\n')}); }
   catch (e) { if (e && e.code !== 'declined') toast('Não foi possível gerar o arquivo.'); }
 });
