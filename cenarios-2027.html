@@ -187,7 +187,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 
   <section class="card" id="sec-mensal">
     <h2 id="mensal-t">Faturamento mensal 2027</h2>
-    <p class="note">Valores por mês da medição (competência). A linha tracejada cinza é a média mensal de 2026 do escopo escolhido: Supervisão R$ 2,12 mi, Controle R$ 910 mil, Laboratório central R$ 278,7 mil e Levantamento R$ 20 mil; em Todos os escopos, a soma (R$ 3,33 mi). Passe o mouse para ver os valores; os gráficos acompanham as edições da planilha abaixo.</p>
+    <p class="note">Valores por mês da medição (competência). A linha tracejada cinza é a média mensal de 2026 do escopo escolhido: Supervisão R$ 2.117.550,31, Controle R$ 910.000,00, Laboratório central R$ 278.680,79 e Levantamento R$ 20.032,48; em Todos os escopos, R$ 3.326.263,58. Passe o mouse para ver os valores; os gráficos acompanham as edições da planilha abaixo.</p>
     <div class="chart" id="ch-mensal"></div>
   </section>
 
@@ -329,6 +329,7 @@ const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out
 const brl = new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL', maximumFractionDigits: 0});
 const brlc = new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 1});
 const n0 = new Intl.NumberFormat('pt-BR', {maximumFractionDigits: 0});
+const brl2 = new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2});
 const n2 = new Intl.NumberFormat('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const pct = new Intl.NumberFormat('pt-BR', {style: 'percent', maximumFractionDigits: 1, signDisplay: 'exceptZero'});
 const curto = (s) => String(s || '').replace(/^OBRA\s+/i, '');
@@ -447,13 +448,13 @@ function renderTiles() {
   const topo = Array.from(porCli.entries()).sort((a, b) => b[1] - a[1]);
   box.append(tile('pe', 'Contratos', 'Com faturamento em 2027', String(ativos.length) + ' de ' + rs.length, [['Clientes com faturamento', String(topo.filter((t) => t[1] > 0.5).length)], ['Maior cliente', topo.length ? nomeCurto(topo[0][0]) : '—'], ['Participação do maior', topo.length && r.total ? pct.format(topo[0][1] / r.total).replace('+', '') : '—']]));
   const m26 = rz26.media || MEDIA_2026_ESC[st.escopo] || MEDIA_2026;
-  const c26 = tile('r26', 'Realizado 2026', (PREVISAO_2026[st.escopo] && rz26.media ? 'Média mensal da previsão 2026 · ' : 'Média mensal 2026 · ') + (st.escopo === 'Todos' || !MEDIA_2026_ESC[st.escopo] ? 'todos os contratos' : st.escopo.toLowerCase()), brl.format(m26), [[PREVISAO_2026[st.escopo] && rz26.media ? 'Previsão 2026 (ano)' : 'Equivale em 12 meses', PREVISAO_2026[st.escopo] && rz26.media ? brl.format(PREVISAO_2026[st.escopo]) : brlc.format(m26 * 12)]].concat(rz26.media ? [['Realista 2027 vs. 2026', pct.format(r.media / m26 - 1), r.media > m26 ? 'up' : 'down']] : [['Comparação', st.cliente !== 'Todos' ? 'só sem filtro de cliente' : 'sem média 2026 deste escopo']]));
+  const c26 = tile('r26', 'Realizado 2026', (PREVISAO_2026[st.escopo] && rz26.media ? 'Média mensal da previsão 2026 · ' : 'Média mensal 2026 · ') + (st.escopo === 'Todos' || !MEDIA_2026_ESC[st.escopo] ? 'todos os contratos' : st.escopo.toLowerCase()), brl2.format(m26), [[PREVISAO_2026[st.escopo] && rz26.media ? 'Previsão 2026 (ano)' : 'Equivale em 12 meses', PREVISAO_2026[st.escopo] && rz26.media ? brl.format(PREVISAO_2026[st.escopo]) : brlc.format(m26 * 12)]].concat(rz26.media ? [['Realista 2027 vs. 2026', pct.format(r.media / m26 - 1), r.media > m26 ? 'up' : 'down']] : [['Comparação', st.cliente !== 'Todos' ? 'só sem filtro de cliente' : 'sem média 2026 deste escopo']]));
   if (!rz26.media || !st.cen.has('r26')) c26.style.opacity = '.45';
   box.append(c26);
   const t = $('take');
   const esc = semFiltro() ? 'todos os contratos' : 'os contratos' + (st.cliente !== 'Todos' ? ' ' + st.cliente : '') + (st.escopo !== 'Todos' ? ' de ' + st.escopo.toLowerCase() : '');
   t.replaceChildren(document.createTextNode('No cenário realista, ' + esc + ' somam '), el('b', '', brlc.format(r.total)), document.createTextNode(' em 2027, média de '), el('b', '', brlc.format(r.media) + '/mês'), document.createTextNode('.'));
-  if (rz26.media) t.append(document.createTextNode((PREVISAO_2026[st.escopo] ? ' A previsão de 2026 é de ' : ' Em 2026, a média mensal foi ') + brlc.format(rz26.media) + '/mês (' + pct.format(r.media / rz26.media - 1) + ' em 2027).'));
+  if (rz26.media) t.append(document.createTextNode((PREVISAO_2026[st.escopo] ? ' A previsão de 2026 é de ' : ' Em 2026, a média mensal foi ') + brl2.format(rz26.media) + '/mês (' + pct.format(r.media / rz26.media - 1) + ' em 2027).'));
 }
 
 /* ---------- gráficos ---------- */
@@ -489,7 +490,7 @@ function grafMensal() {
   const y = d3.scaleLinear([0, max * 1.05], [H - mb, mt]).nice();
   const svg = d3.select(box).insert('svg', ':first-child').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', $('mensal-t').textContent);
   const ml = Math.ceil(medir(svg, y.ticks(5).map((v) => brlc.format(v)))) + 14;
-  const rotulo = (se) => (se.s.k === 'r26' ? 'Média 2026 ' : 'Média ') + brlc.format(se.media) + (st.modo === 'acumulado' ? '/mês' : '');
+  const rotulo = (se) => (se.s.k === 'r26' ? 'Média 2026 ' + brl2.format(se.media) : 'Média ' + brlc.format(se.media)) + (st.modo === 'acumulado' ? '/mês' : '');
   const comLinha = series.filter((se) => st.media || se.s.k === 'r26');
   const mr = comLinha.length ? Math.ceil(medir(svg, comLinha.map(rotulo))) + 16 : 12;
   const idx = d3.range(12);
