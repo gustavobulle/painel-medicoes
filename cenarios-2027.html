@@ -159,6 +159,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 .esc-btn[disabled]{opacity:.45;cursor:default}
 .mapa-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start}
 @media (max-width:960px){.mapa-grid{grid-template-columns:minmax(0,1fr)}}
+#mapa .leaflet-tile-pane{filter:saturate(.55) brightness(1.03)}
 #mapa{height:520px;border:1px solid var(--line);border-radius:6px;background:var(--soft);z-index:0}
 .mapa-sem{display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink-2);text-align:center;padding:16px}
 .leaflet-container{font-family:var(--f-ui)}
@@ -765,7 +766,7 @@ function grafMapa() {
   if (!window.L) { if (!box.querySelector('.mapa-sem')) box.replaceChildren(el('div', 'mapa-sem', 'O mapa precisa de internet para carregar. A lista ao lado mostra os clientes e as obras.')); return; }
   if (!mapa) {
     mapa = L.map(box, {scrollWheelZoom: false, attributionControl: true}).setView([-24.5, -50.5], 6);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {maxZoom: 18, subdomains: 'abcd', attribution: '&copy; OpenStreetMap &copy; CARTO'}).addTo(mapa);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(mapa);
     camada = L.layerGroup().addTo(mapa);
   }
   camada.clearLayers(); marcadores = new Map();
