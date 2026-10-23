@@ -190,7 +190,7 @@ button.chip:hover { outline: 1.5px solid currentColor; }
 @media (max-width: 480px) { .sheet .two { grid-template-columns: 1fr; } }
 .sheet .hint { margin: 0; font-size: .86rem; color: var(--ink-2); background: var(--accent-soft); padding: 8px 10px; border-radius: 6px; }
 .sheet .warnline { margin: 0; font-size: .86rem; color: var(--bad); }
-.sheet input[type="date"], .sheet input[type="month"] { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px; min-height: 36px; width: 100%; }
+.sheet input[type="date"], .sheet input[type="month"], .sheet input[type="number"] { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 6px 10px; min-height: 36px; width: 100%; }
 .proj { color: var(--muted); font-style: italic; }
 .cart-sum { display: flex; flex-wrap: wrap; gap: 6px 22px; }
 .cart-sum div { display: grid; gap: 0; }
@@ -206,6 +206,29 @@ button.chip:hover { outline: 1.5px solid currentColor; }
 .flag.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
 .flag.ok { color: var(--good); background: var(--good-bg); }
 .flag.idle { color: var(--idle); background: var(--idle-bg); }
+.flag.warn { color: var(--warn); background: var(--warn-bg); }
+.alerts { display: grid; gap: 8px; }
+.al-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; font-size: .84rem; color: var(--ink-2); }
+.al-head b { color: var(--ink); font-size: .95rem; }
+.al-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.al-item { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 8px 12px; border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 6px; background: var(--surface); }
+.al-item.late { border-left-color: var(--bad); }
+.al-item .flag { justify-self: start; }
+.al-what { display: grid; gap: 1px; min-width: 0; }
+.al-what b { font-size: .9rem; }
+.al-what span { font-size: .8rem; color: var(--ink-2); }
+.al-item .btn { padding: 5px 12px; font-size: .84rem; }
+.al-ok { display: inline-flex; align-items: center; gap: 6px; font-size: .86rem; font-weight: 600; color: var(--good); }
+.al-ok svg, .al-item .flag svg { width: 12px; height: 12px; }
+.al-more { font-size: .82rem; color: var(--ink-2); }
+td.al-late { box-shadow: inset 0 -3px 0 var(--bad); }
+td.al-soon { box-shadow: inset 0 -3px 0 var(--warn); }
+td.ref.al-late { box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent), inset 0 -3px 0 var(--bad); }
+td.ref.al-soon { box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent), inset 0 -3px 0 var(--warn); }
+.mk.al { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.mk.al.soon { color: var(--warn); background: var(--warn-bg); }
+.pz-ex { font-size: .8rem; color: var(--ink-2); margin: -4px 0 0; }
+@media (max-width: 640px) { .al-item { grid-template-columns: 1fr; } }
 .cell-sub { display: block; font-size: .72rem; color: var(--muted); }
 input.ed, select.ed { font: inherit; font-size: .86rem; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 3px 6px; min-height: 30px; }
 input.ed:hover, select.ed:hover { border-color: var(--line-2); background: var(--input-bg); }
@@ -358,6 +381,7 @@ select.ed { padding-right: 2px; }
       </div>
       <button class="btn primary add-ct" id="addBtn" type="button" data-add>Adicionar contrato</button>
     </div>
+    <div class="alerts" id="alertBox"></div>
     <div class="grid-legend" id="gridLegend"></div>
     <div class="scroll" id="gridWrap"><div class="empty">Carregando medições…</div></div>
   </section>
@@ -374,9 +398,8 @@ select.ed { padding-right: 2px; }
   </section>
 
   <section class="notes">
-    <div><b>Nota no mesmo mês</b>Medição enviada até o dia 10; nota emitida dentro do mês. A medição de set/26 é faturada em set/26.</div>
-    <div><b>Nota no mês seguinte (EPR)</b>Medição enviada no dia 25; nota emitida até o dia 10 do mês seguinte. A medição de set/26 é faturada em out/26.</div>
-    <div><b>Nota no mês seguinte (Via Appia)</b>Medição enviada no dia 15; nota emitida no dia 1º do mês seguinte.</div>
+    <div><b>Prazos e alertas</b>Cada contrato tem o dia-limite para enviar a medição e para emitir a nota. O painel avisa 3 dias antes do prazo e marca em vermelho o que passou do prazo sem data de envio ou de nota.</div>
+    <div><b>Competência e faturamento</b>A previsão de faturamento segue os mesmos prazos: se a nota sai no mês seguinte à competência, a medição de set/26 vira faturamento em out/26.</div>
     <div><b>Projeção</b>Meses sem lançamento recebem a base escolhida no topo, calculada só com meses de medição acima de zero.</div>
   </section>
 </div>
@@ -410,7 +433,8 @@ select.ed { padding-right: 2px; }
   }
   function num(s) {
     s = String(s ?? '').replace(/R\$|\s| /g, '');
-    if (!s || s === '-') return null;
+    if (!s) return null;
+    if (s === '-') return 0; // célula zerada (formato contábil mostra "-")
     let neg = false;
     if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
     if (s.startsWith('-')) { neg = true; s = s.slice(1); }
@@ -598,6 +622,75 @@ select.ed { padding-right: 2px; }
     faturada: { t: 'Faturada', icon: '<svg viewBox="0 0 12 12"><path d="M2.2 6.3 4.8 8.8 9.8 3.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>' }
   };
 
+  // ---------- Prazos de envio da medição e de emissão da nota ----------
+  // [dia do envio, envio no mês seguinte à competência (1) ou no mesmo (0), dia da nota, nota no mês seguinte ao envio (1) ou no mesmo (0)]
+  const normN = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+  const PRAZO_PADRAO = {
+    'OBRA 132.24 EPR LITORAL PIONEIRO': [25, 0, 15, 1],
+    'OBRA 6771 ECO050': [5, 1, 25, 0],
+    'OBRA 1041.23 EIXO': [10, 1, 22, 0],
+    'OBRA 6771 CERRADO': [5, 1, 25, 0],
+    'OBRA 022.25 EPR IGUACU': [25, 0, 15, 1],
+    'OBRA KLABIN MAX': [10, 0, 25, 0],
+    'OBRA 578.25 CART CONTROLE': [10, 1, 22, 0],
+    'OBRA 14923 KLABIN ARAPOTI': [10, 0, 25, 0],
+    'OBRA CONTROLE': [15, 0, 25, 0],
+    'OBRA GERENCIAMENTO': [15, 0, 25, 0]
+  };
+  const PRAZO_RE = /envio at[eé] (?:o )?dia (\d{1,2}) do (m[eê]s da compet[eê]ncia|m[eê]s seguinte [àa] compet[eê]ncia)\s*[·;,\-]?\s*nota at[eé] (?:o )?dia (\d{1,2}) do (m[eê]s do envio|m[eê]s seguinte ao envio)/i;
+  const SEM_PRAZO = 'Sem prazo definido';
+  function prazoOf(c) {
+    const t = String(c.regraTexto || '');
+    const m = t.match(PRAZO_RE);
+    if (m) return { envDia: +m[1], envOff: /seguinte/i.test(m[2]) ? 1 : 0, notaDia: +m[3], notaOff: /seguinte/i.test(m[4]) ? 1 : 0, fonte: 'planilha' };
+    if (/^sem prazo/i.test(t.trim())) return null;
+    const d = PRAZO_PADRAO[normN(c.nome)];
+    return d ? { envDia: d[0], envOff: d[1], notaDia: d[2], notaOff: d[3], fonte: 'padrao' } : null;
+  }
+  const prazoTxt = p => `Envio até dia ${p.envDia} do ${p.envOff ? 'mês seguinte à competência' : 'mês da competência'} · nota até dia ${p.notaDia} do ${p.notaOff ? 'mês seguinte ao envio' : 'mês do envio'}`;
+  const prazoCurto = p => { const nm = p.envOff + p.notaOff; return `Envio dia ${p.envDia}${p.envOff ? ' M+1' : ''} · nota dia ${p.notaDia}${nm ? ' M+' + nm : ''}`; };
+  const lagOf = c => { const p = prazoOf(c); return p ? p.envOff + p.notaOff : (RULES[c.regra] || RULES.mesmo).lag; };
+  const isoHoje = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const diaDo = (k, dia) => { const [y, m] = k.split('-').map(Number); const ult = new Date(y, m, 0).getDate(); return k + '-' + String(Math.min(dia, ult)).padStart(2, '0'); };
+  const utcOf = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+  const diasAte = (de, ate) => Math.round((utcOf(ate) - utcOf(de)) / 864e5);
+  const AVISO_DIAS = 3, JANELA_MESES = 3;
+  function prazosDe(c, m) {
+    const p = prazoOf(c); if (!p) return null;
+    const L = (c.lanc || {})[m] || {};
+    const envio = diaDo(addM(m, p.envOff), p.envDia);
+    const baseNota = L.envio ? L.envio.slice(0, 7) : addM(m, p.envOff);
+    return { p, envio, nota: diaDo(addM(baseNota, p.notaOff), p.notaDia) };
+  }
+  // Pendências de envio e de nota com prazo vencido ou vencendo em até AVISO_DIAS dias
+  function alertasDe(cs) {
+    const hoje = isoHoje(), out = [];
+    cs.forEach(c => {
+      if (!prazoOf(c)) return;
+      const ks = Object.keys(c.valores || {}).filter(k => c.valores[k] != null && /^\d{4}-\d{2}$/.test(k)).sort();
+      const ini = ks[0] || (c.inicio ? c.inicio.slice(0, 7) : null); if (!ini) return;
+      const ter = c.termino ? c.termino.slice(0, 7) : null;
+      let k = addM(CUR, -JANELA_MESES); if (k < ini) k = ini;
+      for (; k <= CUR; k = addM(k, 1)) {
+        if (ter && k > ter) break;
+        const v = (c.valores || {})[k], L = (c.lanc || {})[k] || {}, st = (c.status || {})[k];
+        const pz = prazosDe(c, k);
+        const enviada = v != null && (L.envio || L.fatura || st === 'enviada' || st === 'faturada');
+        if (!enviada) {
+          const d = diasAte(hoje, pz.envio);
+          if (d <= AVISO_DIAS) out.push({ c, m: k, tipo: 'envio', prazo: pz.envio, dias: d, valor: v });
+          continue;
+        }
+        if (!v || L.fatura || st === 'faturada') continue;
+        const d = diasAte(hoje, pz.nota);
+        if (d <= AVISO_DIAS) out.push({ c, m: k, tipo: 'nota', prazo: pz.nota, dias: d, valor: v });
+      }
+    });
+    return out.sort((a, b) => a.dias - b.dias || a.prazo.localeCompare(b.prazo) || String(a.c.nome).localeCompare(b.c.nome));
+  }
+  const alFlag = d => d < 0 ? `Atrasada ${-d} ${-d === 1 ? 'dia' : 'dias'}` : d === 0 ? 'Vence hoje' : `Vence em ${d} ${d === 1 ? 'dia' : 'dias'}`;
+  const alWhat = a => a.tipo === 'envio' ? (a.valor != null ? 'Medição lançada, mas não enviada' : 'Medição não enviada') : 'Nota fiscal não emitida';
+
   // Preferências do visitante
   const pref = (() => { try { return JSON.parse(localStorage.getItem('med-pref') || '{}'); } catch { return {}; } })();
   const savePref = () => { try { localStorage.setItem('med-pref', JSON.stringify(pref)); } catch {} };
@@ -646,7 +739,6 @@ select.ed { padding-right: 2px; }
       if (la && m > la) return { v: projOf[c.id], p: true, has: false };
       return { v: 0, p: false, has: false };
     };
-    const lagOf = c => (RULES[c.regra] || RULES.mesmo).lag;
     const tlEnd = addM(lastData, H);
     const timeline = range(first, tlEnd);
     const monthsFor = list => timeline.map(m => {
@@ -686,7 +778,7 @@ select.ed { padding-right: 2px; }
     const tipoF = $('tipoSel').value;
     if (state.loaded) $('sync').textContent = `${M.cs.length} ${M.cs.length === 1 ? 'contrato' : 'contratos'}${tipoF ? ' de ' + TIPOS[tipoF].toLowerCase() + ` (de ${state.contratos.length})` : ''} · atualizado às ${state.syncAt || ''}`;
     $('gridLegend').innerHTML = Object.keys(STATUS).map(k => `<span><i class="mk ${k}" aria-hidden="true">${STATUS[k].icon}</i>${STATUS[k].t}</span>`).join('') + '<span>Clique no marcador ao lado do valor para registrar data de envio, data de faturamento e nota fiscal.</span>';
-    renderKpis(M); renderFilters(M); renderChart(M); renderComp(M);
+    renderKpis(M); renderFilters(M); renderChart(M); renderComp(M); renderAlertas(M);
     const act = document.activeElement, editing = el => el.contains(act) && act.matches('input, select');
     if (editing($('cartWrap'))) dirtyT.cart = true; else renderCarteira(M);
     if (editing($('fcWrap'))) dirtyT.fc = true; else renderForecast(M);
@@ -883,6 +975,23 @@ select.ed { padding-right: 2px; }
     $('comp').innerHTML = rows.map(([k, v]) => `<div class="bar-row"><div class="lab"><b>${esc(k)}</b><span class="num">${R(v)} · ${(v / tot * 100).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}%</span></div><div class="track"><div class="fill" style="width:${(v / max * 100).toFixed(2)}%"></div></div></div>`).join('');
   }
 
+  function renderAlertas(M) {
+    const box = $('alertBox'); if (!box) return;
+    if (!state.loaded || !M.cs.length) { box.innerHTML = ''; return; }
+    const al = alertasDe(M.cs);
+    const semPrazo = M.cs.filter(c => !prazoOf(c));
+    const nota = semPrazo.length ? `<span>${semPrazo.length === 1 ? 'Sem prazo cadastrado: ' : 'Sem prazos cadastrados: '}${semPrazo.map(c => esc(shortName(c.nome))).join(', ')}</span>` : '';
+    if (!al.length) { box.innerHTML = `<div class="al-head"><span class="al-ok">${ICON_OK}Nenhuma medição ou nota fora do prazo</span>${nota}</div>`; return; }
+    const nLate = al.filter(a => a.dias < 0).length, nSoon = al.length - nLate;
+    const ro = !canEdit();
+    const MAX = 8;
+    box.innerHTML = `<div class="al-head"><b>Alertas de prazo</b><span>${nLate ? `${nLate} ${nLate === 1 ? 'atrasado' : 'atrasados'}` : ''}${nLate && nSoon ? ' · ' : ''}${nSoon ? `${nSoon} vencendo em até ${AVISO_DIAS} dias` : ''}</span>${nota}</div>
+      <ul class="al-list">${al.slice(0, MAX).map(a => `<li class="al-item ${a.dias < 0 ? 'late' : 'soon'}">
+        <span class="flag ${a.dias < 0 ? 'bad' : 'warn'}">${ICON_ALERT}${alFlag(a.dias)}</span>
+        <span class="al-what"><b>${alWhat(a)} · ${esc(shortName(a.c.nome))} · ${lbl(a.m)}</b><span>${a.c.gestor ? 'Responsável: ' + esc(a.c.gestor) + ' · ' : ''}prazo ${fmtD(a.prazo)}${a.valor ? ' · ' + R(a.valor) : ''}</span></span>
+        <button type="button" class="btn" data-lc="${esc(a.c.id)}" data-m="${a.m}">${ro ? 'Ver' : a.tipo === 'envio' ? 'Registrar envio' : 'Registrar nota'}</button></li>`).join('')}</ul>${al.length > MAX ? `<span class="al-more">e mais ${al.length - MAX} pendências.</span>` : ''}`;
+  }
+
   function renderGrid(M) {
     gridDirty = false;
     const wrap = $('gridWrap');
@@ -890,14 +999,18 @@ select.ed { padding-right: 2px; }
     if (!M.cs.length) { wrap.innerHTML = `<div class="empty">Nenhum contrato cadastrado. Use “Adicionar contrato” para começar.</div>`; return; }
     const ms = M.gridMonths, ref = state.ref;
     const dis = state.readOnly || !state.db ? ' disabled' : '';
-    let h = `<table><thead><tr><th class="l stick">Contrato</th><th class="l">Regra</th>`;
+    const AL = {}; alertasDe(M.cs).forEach(a => { AL[a.c.id + '|' + a.m] = a; });
+    let h = `<table><thead><tr><th class="l stick">Contrato</th><th class="l">Prazos</th>`;
     ms.forEach(m => h += `<th class="${m === ref ? 'ref' : ''}">${lbl(m)}</th>`);
     h += `<th class="l">Status ${lbl(ref)}</th><th>Acumulado</th><th>Saldo contratual</th></tr></thead><tbody>`;
     const tots = {}; let totAll = 0, totSaldo = 0;
     M.cs.forEach(c => {
       const rule = RULES[c.regra] || RULES.mesmo;
+      const pz = prazoOf(c);
       h += `<tr><td class="l stick"><div class="cname"><button type="button" data-edit="${esc(c.id)}">${esc(c.nome)}</button><small>${esc(c.cliente)}${c.gestor ? ' · ' + esc(c.gestor) : ''}</small><span class="tipo-tag">${TIPOS[tipoOf(c)]}</span></div></td>`;
-      h += canEdit()
+      h += pz
+        ? `<td class="l"><span class="rule" title="${esc(prazoTxt(pz))}">${prazoCurto(pz)}</span></td>`
+        : canEdit()
         ? `<td class="l"><select class="ed" id="e-regra-${esc(c.id)}" data-c="${esc(c.id)}" data-k="regra" title="${esc(c.regraTexto || rule.desc)}" aria-label="Quando a nota é emitida"><option value="mesmo"${c.regra !== 'seguinte' ? ' selected' : ''}>Nota no mês</option><option value="seguinte"${c.regra === 'seguinte' ? ' selected' : ''}>Nota M+1</option></select></td>`
         : `<td class="l"><span class="rule" title="${esc(c.regraTexto || rule.desc)}">${rule.label}</span></td>`;
       let acc = 0;
@@ -905,8 +1018,11 @@ select.ed { padding-right: 2px; }
         const v = (c.valores || {})[m];
         if (v != null) { acc += v; tots[m] = (tots[m] || 0) + v; }
         const stm = statusOf(c, m);
-        const mk = v != null ? `<button type="button" class="mk ${stm}" data-lc="${esc(c.id)}" data-m="${m}" title="${esc(lancTitle(c, m))}" aria-label="${esc(c.nome)} ${lbl(m)}: ${esc(lancTitle(c, m))}">${STATUS[stm].icon}</button>` : '<span class="mk-sp"></span>';
-        h += `<td class="${m === ref ? 'ref' : ''}"><div class="vc">${mk}<input class="cell" id="v-${esc(c.id)}-${m}" data-c="${esc(c.id)}" data-m="${m}" inputmode="decimal" type="text" value="${v != null ? num2.format(v) : ''}" placeholder="—" aria-label="${esc(c.nome)} ${lbl(m)}"${dis}></div></td>`;
+        const al = AL[c.id + '|' + m];
+        const alT = al ? `${alWhat(al)} · ${alFlag(al.dias).toLowerCase()} · prazo ${fmtD(al.prazo)}` : '';
+        const mk = v != null ? `<button type="button" class="mk ${stm}" data-lc="${esc(c.id)}" data-m="${m}" title="${esc(lancTitle(c, m) + (al ? ' · ' + alT : ''))}" aria-label="${esc(c.nome)} ${lbl(m)}: ${esc(lancTitle(c, m) + (al ? ' · ' + alT : ''))}">${STATUS[stm].icon}</button>`
+          : al ? `<button type="button" class="mk al${al.dias < 0 ? '' : ' soon'}" data-lc="${esc(c.id)}" data-m="${m}" title="${esc(alT)}" aria-label="${esc(c.nome)} ${lbl(m)}: ${esc(alT)}">${ICON_ALERT}</button>` : '<span class="mk-sp"></span>';
+        h += `<td class="${[m === ref ? 'ref' : '', al ? (al.dias < 0 ? 'al-late' : 'al-soon') : ''].filter(Boolean).join(' ')}"${al ? ` title="${esc(alT)}"` : ''}><div class="vc">${mk}<input class="cell" id="v-${esc(c.id)}-${m}" data-c="${esc(c.id)}" data-m="${m}" inputmode="decimal" type="text" value="${v != null ? num2.format(v) : ''}" placeholder="—" aria-label="${esc(c.nome)} ${lbl(m)}"${dis}></div></td>`;
       });
       totAll += acc;
       const st = statusOf(c, ref);
@@ -1128,6 +1244,7 @@ select.ed { padding-right: 2px; }
     const b = e.target.closest('[data-edit]'); if (b) { openSheet(byId(b.dataset.edit)); return; }
     const l = e.target.closest('[data-lc]'); if (l) openLanc(byId(l.dataset.lc), l.dataset.m);
   });
+  $('alertBox').addEventListener('click', e => { const l = e.target.closest('[data-lc]'); if (l) openLanc(byId(l.dataset.lc), l.dataset.m); });
 
   // ---------- Campos editáveis (carteira, previsão, regra) ----------
   const LABEL_K = { gestor: 'gestor', inicio: 'início', termino: 'término', dataBase: 'data-base', valorContrato: 'valor do contrato', medidoInformado: 'medido informado', posicao: 'mês do medido', valor: 'lançamento', previsto: 'previsto operacional', regra: 'regra de nota' };
@@ -1182,12 +1299,13 @@ select.ed { padding-right: 2px; }
     const L = (c.lanc || {})[m] || {};
     const v = (c.valores || {})[m];
     const st = statusOf(c, m);
-    const lag = (RULES[c.regra] || RULES.mesmo).lag;
+    const lag = lagOf(c);
+    const pzL = prazosDe(c, m);
     const d = ro ? ' disabled' : '';
     host.innerHTML = `<div class="sheet-bg"><form class="sheet" id="lcForm" aria-label="Lançamento da medição">
       <div style="display:grid;gap:2px"><span class="eyebrow">Lançamento · ${lbl(m)}</span><h2>${esc(c.nome)}</h2><span class="eyebrow">${esc(c.cliente)} · ${TIPOS[tipoOf(c)]}</span></div>
       <div class="sd-box" id="lcSaldo"></div>
-      <p class="hint">Pela regra do contrato, a nota desta medição sai em <b>${lbl(addM(m, lag))}</b>.${c.regraTexto ? ' ' + esc(c.regraTexto) + '.' : ''}</p>
+      <p class="hint">${pzL ? `Prazos desta medição: envio até <b>${fmtD(pzL.envio)}</b> · nota até <b>${fmtD(pzL.nota)}</b>${L.envio ? '' : ' (se enviada no prazo)'}.${c.gestor ? ' Responsável: ' + esc(c.gestor) + '.' : ''}` : `Pela regra do contrato, a nota desta medição sai em <b>${lbl(addM(m, lag))}</b>.${c.regraTexto ? ' ' + esc(c.regraTexto) + '.' : ''}`}</p>
       <div class="two">
         <div class="field"><label for="lcVal">Valor da medição</label><input type="text" id="lcVal" inputmode="decimal" value="${v != null ? num2.format(v) : ''}" placeholder="0,00"${d}></div>
         <div class="field"><label for="lcSt">Status</label><select id="lcSt"${d}>${Object.keys(STATUS).map(k => `<option value="${k}"${k === st ? ' selected' : ''}>${STATUS[k].t}</option>`).join('')}</select></div>
@@ -1233,6 +1351,7 @@ select.ed { padding-right: 2px; }
   // ---------- Painel de contrato ----------
   function openSheet(c) {
     const isNew = !c;
+    const pz0 = c ? prazoOf(c) : null;
     const host = $('sheetHost');
     const ro = state.readOnly || !state.db;
     host.innerHTML = `<div class="sheet-bg"><form class="sheet" id="sheetForm" aria-label="${isNew ? 'Novo contrato' : 'Editar contrato'}">
@@ -1259,10 +1378,19 @@ select.ed { padding-right: 2px; }
         <div class="field"><label for="fPrevDe">A partir da medição de</label><input type="month" id="fPrevDe" value="${addM(CUR, 0)}"></div>
         <div class="field"><label for="fPrevAte">Até a medição de</label><input type="month" id="fPrevAte" value=""></div>
       </div>` : ''}
-      <div class="field"><label for="fRegra">Quando a nota é emitida</label><select id="fRegra"${ro ? ' disabled' : ''}>
+      <div class="sd-box" style="grid-template-columns:1fr">
+        <div><span>Prazos de envio e nota</span><span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink-2)">Usados nos alertas do lançamento das medições e na previsão de faturamento.</span></div>
+      </div>
+      <div class="two">
+        <div class="field"><label for="fEnvDia">Envio até o dia</label><input type="number" id="fEnvDia" min="1" max="31" inputmode="numeric" value="${pz0 ? pz0.envDia : ''}" placeholder="25"${ro ? ' disabled' : ''}></div>
+        <div class="field"><label for="fEnvOff">Envio no</label><select id="fEnvOff"${ro ? ' disabled' : ''}><option value="0"${pz0 && pz0.envOff ? '' : ' selected'}>Mês da competência</option><option value="1"${pz0 && pz0.envOff ? ' selected' : ''}>Mês seguinte à competência</option></select></div>
+        <div class="field"><label for="fNotaDia">Nota até o dia</label><input type="number" id="fNotaDia" min="1" max="31" inputmode="numeric" value="${pz0 ? pz0.notaDia : ''}" placeholder="15"${ro ? ' disabled' : ''}></div>
+        <div class="field"><label for="fNotaOff">Nota no</label><select id="fNotaOff"${ro ? ' disabled' : ''}><option value="0"${pz0 && pz0.notaOff ? '' : ' selected'}>Mês do envio</option><option value="1"${pz0 && pz0.notaOff ? ' selected' : ''}>Mês seguinte ao envio</option></select></div>
+      </div>
+      <p class="pz-ex" id="fPzEx"></p>
+      <div class="field" id="fRegraBox"><label for="fRegra">Sem prazos: quando a nota é emitida</label><select id="fRegra"${ro ? ' disabled' : ''}>
         <option value="mesmo"${c?.regra !== 'seguinte' ? ' selected' : ''}>No mesmo mês da medição</option>
         <option value="seguinte"${c?.regra === 'seguinte' ? ' selected' : ''}>No mês seguinte à medição</option></select></div>
-      <div class="field"><label for="fTxt">Data de envio das medições</label><input type="text" id="fTxt" value="${esc(c?.regraTexto || '')}" placeholder="Medição enviada até dia 10, nota emitida dentro do mês"${ro ? ' disabled' : ''}></div>
       <div class="acts">
         <div>${!isNew && !ro ? `<button type="button" class="btn danger" id="fDel">Remover</button>` : ''}</div>
         <div><button type="button" class="btn" id="fCancel">${ro ? 'Fechar' : 'Cancelar'}</button>${ro ? '' : `<button type="submit" class="btn primary">${isNew ? 'Adicionar' : 'Salvar'}</button>`}</div>
@@ -1282,6 +1410,24 @@ select.ed { padding-right: 2px; }
       $('fSaldo').textContent = R(sc.saldo);
       $('fAnt').innerHTML = `Medido antes do painel: <b>${R(sc.anterior)}</b> · lançado na grade: <b>${R(sc.lancado)}</b>` + (sc.anterior < 0 ? '<br><span style="color:var(--bad)">O medido informado é menor que a soma dos lançamentos até essa data. Confira o valor ou o mês do medido.</span>' : '');
     };
+    const lerPrazo = () => {
+      const a = $('fEnvDia').value.trim(), b = $('fNotaDia').value.trim();
+      if (!a && !b) return null;
+      const ed = +a, nd = +b;
+      if (!a || !b || !(ed >= 1 && ed <= 31) || !(nd >= 1 && nd <= 31) || ed % 1 || nd % 1) return 'invalido';
+      return { envDia: ed, envOff: +$('fEnvOff').value, notaDia: nd, notaOff: +$('fNotaOff').value };
+    };
+    const upPrazo = () => {
+      const p = lerPrazo(), ex = $('fPzEx');
+      $('fRegraBox').hidden = !!p;
+      if (!p) { ex.textContent = 'Sem prazos: o painel não mostra alertas para este contrato.'; return; }
+      if (p === 'invalido') { ex.textContent = 'Preencha os dois dias, de 1 a 31.'; return; }
+      const pz = prazosDe({ nome: '', regraTexto: prazoTxt(p), lanc: {} }, CUR);
+      ex.innerHTML = `Ex.: medição de ${lbl(CUR)} → envio até <b>${fmtD(pz.envio)}</b>, nota até <b>${fmtD(pz.nota)}</b>.`;
+    };
+    ['fEnvDia', 'fNotaDia'].forEach(id => $(id).addEventListener('input', upPrazo));
+    ['fEnvOff', 'fNotaOff'].forEach(id => $(id).addEventListener('change', upPrazo));
+    upPrazo();
     $('fPos').addEventListener('change', upSaldo);
     $('fVc').addEventListener('input', upSaldo); $('fVm').addEventListener('input', upSaldo); upSaldo();
     if ($('fDel')) { $('fDel').onclick = () => { $('fConfirm').hidden = false; }; $('fDelYes').onclick = async () => { try { await state.db.doc('contratos/' + c.id).delete(); close(); toast('Contrato removido'); } catch (e) { handleWriteError(e); } }; }
@@ -1302,7 +1448,10 @@ select.ed { padding-right: 2px; }
           range(de, ate).slice(0, 72).forEach(m => { previsto[m] = pvv; });
         }
       }
-      const data = { ...extra, nome: $('fNome').value.trim(), cliente: $('fCli').value.trim().toUpperCase(), tipo: $('fTipo').value, regra: $('fRegra').value, regraTexto: $('fTxt').value.trim() };
+      const pz = lerPrazo();
+      if (pz === 'invalido') { toast('Prazos incompletos: preencha o dia do envio e o dia da nota (1 a 31).'); $('fEnvDia').focus(); return; }
+      const regraPz = pz ? { regra: pz.envOff + pz.notaOff > 0 ? 'seguinte' : 'mesmo', regraTexto: prazoTxt(pz) } : { regra: $('fRegra').value, regraTexto: SEM_PRAZO };
+      const data = { ...extra, nome: $('fNome').value.trim(), cliente: $('fCli').value.trim().toUpperCase(), tipo: $('fTipo').value, ...regraPz };
       if (!data.nome || !data.cliente) return;
       try {
         if (isNew) {
@@ -1441,6 +1590,18 @@ select.ed { padding-right: 2px; }
       if (firstLoad && !pref.ref) state.ref = null;
       state.syncAt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       render();
+      if (window.PRAZO_MIGRAR && !state.prazosGravados && canEdit()) {
+        state.prazosGravados = true;
+        const pend = state.contratos.filter(c => { const p = prazoOf(c); return p && p.fonte === 'padrao'; });
+        if (pend.length) (async () => {
+          let ok = 0;
+          for (const c of pend) {
+            const p = prazoOf(c);
+            try { await writeDoc(c.id, { regraTexto: prazoTxt(p), regra: p.envOff + p.notaOff > 0 ? 'seguinte' : 'mesmo' }); ok++; } catch (e) { break; }
+          }
+          if (ok) toast(`Prazos de envio e nota gravados na planilha (${ok} ${ok === 1 ? 'contrato' : 'contratos'})`);
+        })();
+      }
     }, err => {
       $('sync').textContent = 'Conexão com a base interrompida';
       showBanner('A atualização automática parou. Recarregue a página para voltar a ver as medições mais recentes.');
