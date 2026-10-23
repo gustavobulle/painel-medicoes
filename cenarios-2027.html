@@ -211,7 +211,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 
   <section class="card" id="sec-mensal">
     <h2 id="mensal-t">Faturamento mensal 2027</h2>
-    <p class="note">Valores por mês da medição (competência). A linha tracejada cinza é a média mensal de 2026 (até agosto) do escopo escolhido: Supervisão R$ 2.317.550,31, Controle R$ 910.000,00, Laboratório central R$ 278.680,79, Levantamento R$ 20.032,48, Projeto R$ 770.973,67 e Sondagem R$ 184.688,87; em Todos os escopos, R$ 4.481.926,12. Passe o mouse para ver os valores; os gráficos acompanham as edições da planilha abaixo.</p>
+    <p class="note">Valores por mês da medição (competência). A linha tracejada cinza é a média mensal de 2026 (até agosto) do escopo escolhido: Supervisão R$ 2.217.550,31, Controle R$ 810.000,00, Laboratório central R$ 278.680,79, Levantamento R$ 20.032,48, Projeto R$ 770.973,67 e Sondagem R$ 184.688,87; em Todos os escopos, R$ 4.281.926,12. Passe o mouse para ver os valores; os gráficos acompanham as edições da planilha abaixo.</p>
     <div class="chart" id="ch-mensal"></div>
   </section>
 
@@ -386,7 +386,7 @@ const SC = [
   {k: 'realista', n: 'Realista', cls: 're', v: 'var(--c-re)', crit: 'Cenário realista da planilha de planejamento (posição em 23/10/2026), com os contratos de supervisão, controle, laboratório, levantamento, projeto e sondagem. Valores por mês da medição.'},
 ];
 let MEDIA_2026 = 0; // definida abaixo (soma das médias de 2026 por escopo)
-const MEDIA_2026_ESC = {'Supervisão': 2317550.31, 'Controle': 910000, 'Laboratório central': 278680.79, 'Levantamento': 20032.48, 'Projeto': 770973.67, 'Sondagem': 184688.87}; // médias mensais de 2026 (até agosto) por escopo, informadas pelo usuário
+const MEDIA_2026_ESC = {'Supervisão': 2217550.31, 'Controle': 810000, 'Laboratório central': 278680.79, 'Levantamento': 20032.48, 'Projeto': 770973.67, 'Sondagem': 184688.87}; // médias mensais de 2026 (até agosto) por escopo, informadas pelo usuário
 MEDIA_2026_ESC.Todos = Object.values(MEDIA_2026_ESC).reduce((a, b) => a + b, 0); // todos os escopos = soma
 const PREVISAO_2026 = {};
 MEDIA_2026 = MEDIA_2026_ESC.Todos;
