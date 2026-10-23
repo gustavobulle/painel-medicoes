@@ -229,6 +229,14 @@ td.ref.al-soon { box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--a
 .mk.al { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
 .mk.al.soon { color: var(--warn); background: var(--warn-bg); }
 .pz-ex { font-size: .8rem; color: var(--ink-2); margin: -4px 0 0; }
+.pz-cell { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.pz-cell input.pz { width: 58px; text-align: center; }
+.pz-cell select.pz { min-width: 0; width: auto; }
+.pz-next { display: grid; gap: 2px; font-size: .82rem; white-space: nowrap; }
+.pz-next .ok { color: var(--good); font-weight: 600; }
+.pz-next .late { color: var(--bad); font-weight: 600; }
+.pz-next .soon { color: var(--warn); font-weight: 600; }
+#critWrap td, #critWrap th { vertical-align: middle; }
 @media (max-width: 640px) { .al-item { grid-template-columns: 1fr; } }
 .cell-sub { display: block; font-size: .72rem; color: var(--muted); }
 input.ed, select.ed { font: inherit; font-size: .86rem; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 3px 6px; min-height: 30px; }
@@ -383,6 +391,16 @@ select.ed { padding-right: 2px; }
     <div class="alerts" id="alertBox"></div>
     <div class="grid-legend" id="gridLegend"></div>
     <div class="scroll" id="gridWrap"><div class="empty">Carregando medições…</div></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div style="display:grid;gap:2px">
+        <h2>Critérios de envio e nota</h2>
+        <p id="critHint">Prazo de envio da medição e de aprovação e emissão da nota de cada contrato. São esses critérios que geram os alertas e a previsão de faturamento.</p>
+      </div>
+    </div>
+    <div class="scroll" id="critWrap"></div>
   </section>
 
   <section class="panel">
@@ -630,7 +648,7 @@ select.ed { padding-right: 2px; }
 
   // ---------- Render ----------
   let gridDirty = false;
-  const dirtyT = { cart: false, fc: false };
+  const dirtyT = { cart: false, fc: false, crit: false };
   const canEdit = () => !state.readOnly && !!state.db;
   const edMoney = (id, k, m, v, ph, cls) => `<input class="ed money${cls ? ' ' + cls : ''}" type="text" inputmode="decimal" id="e-${k}-${esc(id)}-${m || 'x'}" data-c="${esc(id)}" data-k="${k}" data-m="${m || ''}" value="${v != null ? num2.format(v) : ''}" placeholder="${esc(ph || '—')}" aria-label="${k} ${m || ''}">`;
   const edText = (id, k, v, ph) => `<input class="ed txt" type="text" id="e-${k}-${esc(id)}" data-c="${esc(id)}" data-k="${k}" value="${esc(v || '')}" placeholder="${esc(ph || '—')}" aria-label="${k}">`;
@@ -650,6 +668,7 @@ select.ed { padding-right: 2px; }
     const act = document.activeElement, editing = el => el.contains(act) && act.matches('input, select');
     if (editing($('cartWrap'))) dirtyT.cart = true; else renderCarteira(M);
     if (editing($('fcWrap'))) dirtyT.fc = true; else renderForecast(M);
+    if (editing($('critWrap'))) dirtyT.crit = true; else renderCriterios(M);
     const g = $('gridWrap');
     if (g.contains(document.activeElement) && document.activeElement.classList.contains('cell')) gridDirty = true;
     else renderGrid(M);
@@ -843,6 +862,68 @@ select.ed { padding-right: 2px; }
     $('comp').innerHTML = rows.map(([k, v]) => `<div class="bar-row"><div class="lab"><b>${esc(k)}</b><span class="num">${R(v)} · ${(v / tot * 100).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}%</span></div><div class="track"><div class="fill" style="width:${(v / max * 100).toFixed(2)}%"></div></div></div>`).join('');
   }
 
+  const envTxt = p => p.envOff ? `até dia ${p.envDia} do mês seguinte à competência` : `até dia ${p.envDia} de cada mês`;
+  const notaTxt = p => p.notaOff ? `até dia ${p.notaDia} do mês seguinte` : `até dia ${p.notaDia} do mês de envio`;
+  function passoTxt(feito, prazo, quando) {
+    if (feito) return `<span class="ok">✓ ${quando ? fmtD(quando).slice(0, 5) : 'feito'}</span>`;
+    const d = diasAte(isoHoje(), prazo);
+    const cls = d < 0 ? 'late' : d <= AVISO_DIAS ? 'soon' : '';
+    return `<span class="${cls}">${fmtD(prazo)}${d < 0 ? ` · ${-d} ${-d === 1 ? 'dia' : 'dias'} de atraso` : d === 0 ? ' · hoje' : d <= AVISO_DIAS ? ` · em ${d} ${d === 1 ? 'dia' : 'dias'}` : ''}</span>`;
+  }
+  function renderCriterios(M) {
+    dirtyT.crit = false;
+    const wrap = $('critWrap'); if (!wrap) return;
+    if (!state.loaded) return;
+    if (!M.cs.length) { wrap.innerHTML = '<div class="empty">Nenhum contrato cadastrado.</div>'; return; }
+    const ed = canEdit(), ref = state.ref;
+    $('critHint').textContent = ed
+      ? 'Edite direto na tabela: salva ao sair do campo. São esses critérios que geram os alertas de prazo e a previsão de faturamento.'
+      : 'Prazo de envio da medição e de aprovação e emissão da nota de cada contrato. São esses critérios que geram os alertas e a previsão de faturamento.';
+    const opt = (v, cur, t) => `<option value="${v}"${cur === v ? ' selected' : ''}>${t}</option>`;
+    let h = `<table><thead><tr><th class="l stick">Obra</th><th class="l">Cliente</th><th class="l">Responsável</th><th class="l">Tipo</th><th class="l">Data de envio da medição</th><th class="l">Aprovação e emissão de nota</th><th class="l">Prazos de ${lbl(ref)}</th></tr></thead><tbody>`;
+    M.cs.forEach(c => {
+      const p = prazoOf(c), id = esc(c.id);
+      h += `<tr><td class="l stick"><div class="cname"><button type="button" data-edit="${id}">${esc(c.nome)}</button></div></td><td class="l">${esc(c.cliente)}</td>`;
+      if (ed) {
+        h += `<td class="l">${edText(c.id, 'gestor', c.gestor, 'Responsável')}</td>`;
+        h += `<td class="l"><select class="ed" id="e-tipo-${id}" data-c="${id}" data-k="tipo" aria-label="Tipo de contrato">${Object.entries(TIPOS).map(([k, v]) => opt(k, tipoOf(c), v)).join('')}</select></td>`;
+        h += `<td class="l"><div class="pz-cell">até dia <input class="ed pz" type="number" min="1" max="31" inputmode="numeric" id="pz-envDia-${id}" data-c="${id}" data-f="envDia" value="${p ? p.envDia : ''}" placeholder="—" aria-label="${esc(c.nome)}: dia do envio da medição">
+          <select class="ed pz" id="pz-envOff-${id}" data-c="${id}" data-f="envOff" aria-label="${esc(c.nome)}: mês do envio">${opt(0, p ? p.envOff : 0, 'do mês da competência')}${opt(1, p ? p.envOff : 0, 'do mês seguinte')}</select></div></td>`;
+        h += `<td class="l"><div class="pz-cell">até dia <input class="ed pz" type="number" min="1" max="31" inputmode="numeric" id="pz-notaDia-${id}" data-c="${id}" data-f="notaDia" value="${p ? p.notaDia : ''}" placeholder="—" aria-label="${esc(c.nome)}: dia da nota">
+          <select class="ed pz" id="pz-notaOff-${id}" data-c="${id}" data-f="notaOff" aria-label="${esc(c.nome)}: mês da nota">${opt(0, p ? p.notaOff : 0, 'do mês de envio')}${opt(1, p ? p.notaOff : 0, 'do mês seguinte')}</select></div></td>`;
+      } else {
+        h += `<td class="l">${esc(c.gestor || '—')}</td><td class="l"><span class="tipo-tag">${TIPOS[tipoOf(c)]}</span></td>`;
+        h += p ? `<td class="l">${envTxt(p)}</td><td class="l">${notaTxt(p)}</td>` : `<td class="l" colspan="2"><span class="cell-sub">Sem prazo cadastrado</span></td>`;
+      }
+      if (p) {
+        const pz = prazosDe(c, ref), v = (c.valores || {})[ref], L = (c.lanc || {})[ref] || {}, st = (c.status || {})[ref];
+        const envOk = v != null && (L.envio || L.fatura || st === 'enviada' || st === 'faturada');
+        const notaOk = v != null && (L.fatura || st === 'faturada' || v === 0);
+        h += `<td class="l"><div class="pz-next"><span>Envio: ${passoTxt(envOk, pz.envio, L.envio)}</span><span>Nota: ${passoTxt(notaOk, pz.nota, L.fatura)}</span></div></td>`;
+      } else h += `<td class="l"><span class="cell-sub">Sem alertas</span></td>`;
+      h += `</tr>`;
+    });
+    h += `</tbody></table>`;
+    wrap.innerHTML = h;
+  }
+  async function commitPz(el) {
+    const c = byId(el.dataset.c); if (!c) return;
+    const g = f => document.getElementById(`pz-${f}-${c.id}`);
+    const a = g('envDia').value.trim(), b = g('notaDia').value.trim();
+    let patch;
+    if (!a && !b) patch = { regraTexto: SEM_PRAZO };
+    else {
+      const ed = +a, nd = +b;
+      if (!a || !b) { if (el.dataset.f === 'envDia' || el.dataset.f === 'notaDia') toast('Preencha o dia do envio e o dia da nota para salvar o critério.'); return; }
+      if (!(ed >= 1 && ed <= 31 && nd >= 1 && nd <= 31) || ed % 1 || nd % 1) { toast('Use um dia de 1 a 31.'); return; }
+      const p = { envDia: ed, envOff: +g('envOff').value, notaDia: nd, notaOff: +g('notaOff').value };
+      patch = { regraTexto: prazoTxt(p), regra: p.envOff + p.notaOff > 0 ? 'seguinte' : 'mesmo' };
+    }
+    if (patch.regraTexto === c.regraTexto) return;
+    try { await writeDoc(c.id, patch); toast(`${shortName(c.nome)}: critério de envio e nota salvo`); }
+    catch (e) { handleWriteError(e); }
+  }
+
   function renderAlertas(M) {
     const box = $('alertBox'); if (!box) return;
     if (!state.loaded || !M.cs.length) { box.innerHTML = ''; return; }
@@ -1000,6 +1081,7 @@ select.ed { padding-right: 2px; }
     $('cartSum').innerHTML = `<div><span>Carteira</span><b class="num">${short(tVc)}</b></div><div><span>Saldo</span><b class="num">${short(tSaldo)}</b></div><div><span>Saldo acaba antes do término</span><b class="num" style="color:${nAlert ? 'var(--bad)' : 'var(--good)'}">${nAlert} ${nAlert === 1 ? 'contrato' : 'contratos'}</b></div>`;
   }
   $('cartWrap').addEventListener('click', e => { const b = e.target.closest('[data-edit]'); if (b) openSheet(byId(b.dataset.edit)); });
+  $('critWrap').addEventListener('click', e => { const b = e.target.closest('[data-edit]'); if (b) openSheet(byId(b.dataset.edit)); });
 
   function renderForecast(M) {
     dirtyT.fc = false;
@@ -1115,11 +1197,12 @@ select.ed { padding-right: 2px; }
   $('alertBox').addEventListener('click', e => { const l = e.target.closest('[data-lc]'); if (l) openLanc(byId(l.dataset.lc), l.dataset.m); });
 
   // ---------- Campos editáveis (carteira, previsão, regra) ----------
-  const LABEL_K = { gestor: 'gestor', inicio: 'início', termino: 'término', dataBase: 'data-base', valorContrato: 'valor do contrato', medidoInformado: 'medido informado', posicao: 'mês do medido', valor: 'lançamento', previsto: 'previsto operacional', regra: 'regra de nota' };
+  const LABEL_K = { gestor: 'gestor', inicio: 'início', termino: 'término', dataBase: 'data-base', valorContrato: 'valor do contrato', medidoInformado: 'medido informado', posicao: 'mês do medido', tipo: 'tipo', valor: 'lançamento', previsto: 'previsto operacional', regra: 'regra de nota' };
   function edRaw(el) {
     const c = byId(el.dataset.c); if (!c) return '';
     const k = el.dataset.k, m = el.dataset.m;
-    const v = k === 'valor' ? (c.valores || {})[m] : k === 'previsto' ? (c.previsto || {})[m] : c[k];
+    if (el.dataset.f) { const p = prazoOf(c); return p ? String(p[el.dataset.f]) : ''; }
+    const v = k === 'valor' ? (c.valores || {})[m] : k === 'previsto' ? (c.previsto || {})[m] : k === 'tipo' ? tipoOf(c) : c[k];
     return v;
   }
   async function commitEd(el) {
@@ -1139,17 +1222,17 @@ select.ed { padding-right: 2px; }
       toast(`${shortName(c.nome)}: ${LABEL_K[k] || k}${m ? ' de ' + lbl(m) : ''} salvo`);
     } catch (e) { handleWriteError(e); }
   }
-  ['cartWrap', 'fcWrap', 'gridWrap'].forEach(wid => {
+  ['cartWrap', 'fcWrap', 'gridWrap', 'critWrap'].forEach(wid => {
     const w = $(wid);
     w.addEventListener('focusin', e => { const el = e.target; if (el.classList && el.classList.contains('ed') && el.classList.contains('money')) { const v = edRaw(el); el.value = v != null ? String(v).replace('.', ',') : ''; el.select(); } });
-    w.addEventListener('change', e => { const el = e.target; if (el.classList && el.classList.contains('ed')) commitEd(el); });
+    w.addEventListener('change', e => { const el = e.target; if (el.classList && el.classList.contains('ed')) (el.classList.contains('pz') ? commitPz(el) : commitEd(el)); });
     w.addEventListener('focusout', e => {
       const el = e.target; if (!el.classList || !el.classList.contains('ed')) return;
       if (el.classList.contains('money')) { const v = edRaw(el); if (parseBR(el.value) === (v ?? null)) el.value = v != null ? num2.format(v) : ''; }
       setTimeout(() => {
         const act = document.activeElement;
         if (w.contains(act) && act.matches('input, select')) return;
-        if ((wid === 'cartWrap' && dirtyT.cart) || (wid === 'fcWrap' && dirtyT.fc)) render();
+        if ((wid === 'cartWrap' && dirtyT.cart) || (wid === 'fcWrap' && dirtyT.fc) || (wid === 'critWrap' && dirtyT.crit)) render();
       }, 0);
     });
     w.addEventListener('keydown', e => {
