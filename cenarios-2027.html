@@ -187,7 +187,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
   <header class="top">
     <span class="plate">Planejamento · Cenário realista 2027</span>
     <h1>Faturamento 2027 · Cenário realista · Afirma Evias</h1>
-    <span class="eyebrow">Supervisão, controle, laboratório e levantamento · valores por competência · posição em 22/10/2026</span>
+    <span class="eyebrow">Supervisão, controle, laboratório, levantamento, projeto e sondagem · valores por competência · posição em 23/10/2026</span>
     <p class="take" id="take">Carregando os valores dos contratos…</p>
   </header>
 
@@ -211,7 +211,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 
   <section class="card" id="sec-mensal">
     <h2 id="mensal-t">Faturamento mensal 2027</h2>
-    <p class="note">Valores por mês da medição (competência). A linha tracejada cinza é a média mensal de 2026 do escopo escolhido: Supervisão R$ 2.117.550,31, Controle R$ 910.000,00, Laboratório central R$ 278.680,79 e Levantamento R$ 20.032,48; em Todos os escopos, R$ 3.326.263,58. Passe o mouse para ver os valores; os gráficos acompanham as edições da planilha abaixo.</p>
+    <p class="note">Valores por mês da medição (competência). A linha tracejada cinza é a média mensal de 2026 (até agosto) do escopo escolhido: Supervisão R$ 2.317.550,31, Controle R$ 910.000,00, Laboratório central R$ 278.680,79, Levantamento R$ 20.032,48, Projeto R$ 770.973,67 e Sondagem R$ 184.688,87; em Todos os escopos, R$ 4.481.926,12. Passe o mouse para ver os valores; os gráficos acompanham as edições da planilha abaixo.</p>
     <div class="chart" id="ch-mensal"></div>
   </section>
 
@@ -293,7 +293,7 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
       <div class="novo-grid">
         <label class="field" for="n-nome"><span>Contrato</span><input id="n-nome" autocomplete="off" placeholder="Ex.: OBRA 245.26 EPR NORTE"></label>
         <label class="field" for="n-cli"><span>Cliente</span><input id="n-cli" list="l-cli" autocomplete="off" placeholder="Ex.: EPR"></label>
-        <label class="field" for="n-esc"><span>Escopo</span><select id="n-esc"><option>Supervisão</option><option>Controle</option><option>Laboratório central</option><option>Gerenciamento</option><option>Outro</option></select></label>
+        <label class="field" for="n-esc"><span>Escopo</span><select id="n-esc"><option>Supervisão</option><option>Controle</option><option>Laboratório central</option><option>Levantamento</option><option>Projeto</option><option>Sondagem</option><option>Gerenciamento</option><option>Outro</option></select></label>
         <label class="field" for="n-ini"><span>Início do faturamento</span><select id="n-ini"></select></label>
         <label class="field" for="n-fim"><span>Término previsto</span><input id="n-fim" type="date" min="2026-01-01" max="2035-12-31"></label>
         <label class="field" for="n-saldo"><span>Saldo para 2027 (R$)</span><input id="n-saldo" inputmode="decimal" autocomplete="off" placeholder="Em branco = sem limite"></label>
@@ -318,50 +318,79 @@ table.sheet{border-collapse:separate;border-spacing:0;font-size:.88rem;min-width
 
 <script type="application/json" id="snap">{
 "realista-01":{"cenario":"realista","cliente":"EPR","contrato":"OBRA 132.24 EPR LITORAL PIONEIRO","escopo":"Supervisão","local":"Jacarezinho/PR","meses":[915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23,915875.23],"ordem":1,"saldo_2027":16585910.87,"termino":"2028-10-06"},
-"realista-02":{"cenario":"realista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 ECO050","escopo":"Supervisão","local":"Uberlândia/MG","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":2,"saldo_2027":690580,"termino":"2028-10-17"},
-"realista-03":{"cenario":"realista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 CERRADO","escopo":"Supervisão","local":"Uberlândia/MG","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":3,"saldo_2027":0,"termino":"2028-10-17"},
-"realista-04":{"cenario":"realista","cliente":"EIXO","contrato":"OBRA 1041.23 EIXO","escopo":"Supervisão","local":"Marilia/SP","meses":[202774.91,202774.91,202774.91,158194.93,0,0,0,0,0,0,0,0],"ordem":4,"saldo_2027":766519.67,"termino":"2029-01-08"},
+"realista-02":{"cenario":"realista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 ECO050","escopo":"Supervisão","local":"Uberlândia/MG","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":2,"saldo_2027":690580,"termino":"2028-10-17"},
+"realista-03":{"cenario":"realista","cliente":"ECORODOVIAS","contrato":"OBRA 6771 CERRADO","escopo":"Supervisão","local":"Uberlândia/MG","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":3,"saldo_2027":0,"termino":"2028-10-17"},
+"realista-04":{"cenario":"realista","cliente":"EIXO","contrato":"OBRA 1041.23 EIXO","escopo":"Supervisão","local":"Marilia/SP","meses":[202774.91,202774.91,202774.91,158194.93,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":4,"saldo_2027":766519.67,"termino":"2029-01-08"},
 "realista-05":{"cenario":"realista","cliente":"EPR","contrato":"OBRA 022.25 EPR IGUAÇU","escopo":"Supervisão","local":"Cascavel/PR","meses":[286634.34,286634.34,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04,351239.04],"ordem":5,"saldo_2027":15511313.55,"termino":"2028-10-17"},
-"realista-06":{"cenario":"realista","cliente":"KLABIN","contrato":"OBRA KLABIN MAX","escopo":"Supervisão","local":"Telemaco Borba/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":6,"saldo_2027":8032.14,"termino":"2026-12-01"},
-"realista-07":{"cenario":"realista","cliente":"CART","contrato":"OBRA 578.25 CART CONTROLE","escopo":"Supervisão","local":"Marilia/SP","meses":[81703.01,81703.01,81703.01,81703.01,81703.01,81703.01,81703.01,0,0,0,0,0],"ordem":7,"saldo_2027":779734.37,"termino":"2027-07-11"},
-"realista-08":{"cenario":"realista","cliente":"KLABIN","contrato":"OBRA 14923 KLABIN ARAPOTI","escopo":"Supervisão","local":"Arapoti/PR","meses":[135135.56,135135.56,135135.56,135135.56,135135.56,135135.56,135135.56,0,0,0,0,0],"ordem":8,"saldo_2027":977066.96,"termino":"2027-07-30"},
+"realista-06":{"cenario":"realista","cliente":"KLABIN","contrato":"OBRA KLABIN MAX","escopo":"Supervisão","local":"Telemaco Borba/PR","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":6,"saldo_2027":8032.14,"termino":"2026-12-01"},
+"realista-07":{"cenario":"realista","cliente":"CART","contrato":"OBRA 578.25 CART CONTROLE","escopo":"Supervisão","local":"Marilia/SP","meses":[81703.01,81703.01,81703.01,81703.01,81703.01,81703.01,81703.01,0.0,0.0,0.0,0.0,0.0],"ordem":7,"saldo_2027":779734.37,"termino":"2027-07-11"},
+"realista-08":{"cenario":"realista","cliente":"KLABIN","contrato":"OBRA 14923 KLABIN ARAPOTI","escopo":"Supervisão","local":"Arapoti/PR","meses":[135135.56,135135.56,135135.56,135135.56,135135.56,135135.56,135135.56,0.0,0.0,0.0,0.0,0.0],"ordem":8,"saldo_2027":977066.96,"termino":"2027-07-30"},
 "realista-09":{"cenario":"realista","cliente":"VIA APPIA","contrato":"OBRA CONTROLE","escopo":"Supervisão","local":"Porto Feliz/SP","meses":[222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84,222852.84],"ordem":9,"saldo_2027":8693066.82,"termino":"2028-10-09"},
 "realista-10":{"cenario":"realista","cliente":"VIA APPIA","contrato":"OBRA GERENCIAMENTO","escopo":"Supervisão","local":"Porto Feliz/SP","meses":[220888.47,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89,265655.89],"ordem":10,"saldo_2027":5991359.82,"termino":"2028-06-28"},
-"realista-11":{"cenario":"realista","cliente":"LEVANTAMENTO","contrato":"LEVANTAMENTO","escopo":"Levantamento","local":"Curitiba/PR","meses":[20000,20000,20000,20000,20000,20000,20000,20000,20000,20000,20000,20000],"ordem":11,"saldo_2027":null,"termino":null},
-"realista-12":{"cenario":"realista","cliente":"LABORATÓRIO CENTRAL CURITIBA","contrato":"LABORATÓRIO CENTRAL CURITIBA","escopo":"Laboratório central","local":"Curitiba/PR","meses":[220000,250000,275000,300000,300000,300000,300000,300000,300000,300000,270000,220000],"ordem":12,"saldo_2027":null,"termino":null},
-"realista-13":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 15.24  ELLENCO SÃO ROQUE","escopo":"Controle","local":"São Roque/SP","meses":[94536.78,113899.73,0,0,0,0,0,0,0,0,0,0],"ordem":13,"saldo_2027":null,"termino":null},
+"realista-11":{"cenario":"realista","cliente":"LEVANTAMENTO","contrato":"LEVANTAMENTO","escopo":"Levantamento","local":"Curitiba/PR","meses":[20000.0,20000.0,20000.0,20000.0,20000.0,20000.0,20000.0,20000.0,20000.0,20000.0,20000.0,20000.0],"ordem":11,"saldo_2027":null,"termino":null},
+"realista-12":{"cenario":"realista","cliente":"LABORATÓRIO CENTRAL CURITIBA","contrato":"LABORATÓRIO CENTRAL CURITIBA","escopo":"Laboratório central","local":"Curitiba/PR","meses":[220000.0,250000.0,275000.0,300000.0,300000.0,300000.0,300000.0,300000.0,300000.0,300000.0,270000.0,220000.0],"ordem":12,"saldo_2027":null,"termino":null},
+"realista-13":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 15.24  ELLENCO SÃO ROQUE","escopo":"Controle","local":"São Roque/SP","meses":[94536.78,113899.73,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":13,"saldo_2027":null,"termino":null},
 "realista-14":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 108.26 PROMAC ELLENCO","escopo":"Controle","local":"Arapoti/PR","meses":[179261.76,215978.02,215978.02,168781.57,168781.57,168781.57,168781.57,168781.57,168781.57,168781.57,130706.57,130706.57],"ordem":14,"saldo_2027":null,"termino":null},
 "realista-15":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 408.26 PROMAC ELLENCO (LONDRINA)","escopo":"Controle","local":"Londrina/PR","meses":[84806.62,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65,102176.65],"ordem":15,"saldo_2027":null,"termino":null},
 "realista-16":{"cenario":"realista","cliente":"COSAMPA","contrato":"OBRA 090.26 COSAMPA IMBAU RESERVA","escopo":"Controle","local":"Reserva/PR","meses":[90412.46,108930.67,108930.67,135930.67,135930.67,135930.67,108930.67,108930.67,108930.67,108930.67,108930.67,108930.67],"ordem":16,"saldo_2027":null,"termino":null},
-"realista-17":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 153.24 ELLENCO SEARA","escopo":"Controle","local":"Seara/SC","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":17,"saldo_2027":null,"termino":null},
+"realista-17":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 153.24 ELLENCO SEARA","escopo":"Controle","local":"Seara/SC","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":17,"saldo_2027":null,"termino":null},
 "realista-18":{"cenario":"realista","cliente":"PREFEITURA DE CURITIBA","contrato":"OBRA 043.25 - SMOP PMC","escopo":"Controle","local":"Curitiba/PR","meses":[39242.28,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79,70919.79],"ordem":18,"saldo_2027":null,"termino":null},
-"realista-19":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 410.25 COMPASA M. RICO RONCADOR (DESMOBILIZADO)","escopo":"Controle","local":"Roncador/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":19,"saldo_2027":null,"termino":null},
-"realista-20":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 12.21 COMPASA FÁBRICA","escopo":"Controle","local":"Curitiba/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":20,"saldo_2027":null,"termino":null},
-"realista-21":{"cenario":"realista","cliente":"COMPASA","contrato":"LABO 007.20 COMPASA P&D","escopo":"Controle","local":"Curitiba/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":21,"saldo_2027":null,"termino":null},
+"realista-19":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 410.25 COMPASA M. RICO RONCADOR (DESMOBILIZADO)","escopo":"Controle","local":"Roncador/PR","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":19,"saldo_2027":null,"termino":null},
+"realista-20":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 12.21 COMPASA FÁBRICA","escopo":"Controle","local":"Curitiba/PR","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":20,"saldo_2027":null,"termino":null},
+"realista-21":{"cenario":"realista","cliente":"COMPASA","contrato":"LABO 007.20 COMPASA P&D","escopo":"Controle","local":"Curitiba/PR","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":21,"saldo_2027":null,"termino":null},
 "realista-22":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 035.26 COMPASA NOROESTE *","escopo":"Controle","local":"Maringá/PR","meses":[55737.88,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07,67154.07],"ordem":22,"saldo_2027":null,"termino":null},
-"realista-23":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 12.21 COMPASA USINA IBIPORÃ (ENCERRADO)","escopo":"Controle","local":"Ibiporã/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":23,"saldo_2027":null,"termino":null},
-"realista-24":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 022.25 ELLENCO CCR SOROCABA (ENCERRADO)","escopo":"Controle","local":"Sorocaba/SP","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":24,"saldo_2027":null,"termino":null},
-"realista-25":{"cenario":"realista","cliente":"COSAMPA","contrato":"OBRA 275.26 COSAMPA PROMAC LOTE 40","escopo":"Controle","local":"Mangueirinha/PR","meses":[64844.58,78126,78126,78126,78126,78126,78126,78126,78126,78126,78126,78126],"ordem":25,"saldo_2027":null,"termino":null},
+"realista-23":{"cenario":"realista","cliente":"COMPASA","contrato":"OBRA 12.21 COMPASA USINA IBIPORÃ (ENCERRADO)","escopo":"Controle","local":"Ibiporã/PR","meses":[0.0,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":23,"saldo_2027":null,"termino":null},
+"realista-24":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA 022.25 ELLENCO CCR SOROCABA (ENCERRADO)","escopo":"Controle","local":"Sorocaba/SP","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":24,"saldo_2027":null,"termino":null},
+"realista-25":{"cenario":"realista","cliente":"COSAMPA","contrato":"OBRA 275.26 COSAMPA PROMAC LOTE 40","escopo":"Controle","local":"Mangueirinha/PR","meses":[64844.58,78126.0,78126.0,78126.0,78126.0,78126.0,78126.0,78126.0,78126.0,78126.0,78126.0,78126.0],"ordem":25,"saldo_2027":null,"termino":null},
 "realista-26":{"cenario":"realista","cliente":"CONSÓRCIO","contrato":"OBRA 274.25 CONSÓRCIO MANOEL RIBAS","escopo":"Controle","local":"Manoel Ribas/PR","meses":[48358.95,58263.79,58263.79,58263.79,116527.58,116527.58,116527.58,116527.58,116527.58,116527.58,116527.58,116527.58],"ordem":26,"saldo_2027":null,"termino":null},
-"realista-27":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - SOROCABA - ELLENCO","escopo":"Controle","local":"Sorocaba/SP","meses":[0,0,97174.87,126327.32,246079.43,246079.43,246079.43,246079.43,323599.23,323599.23,323599.23,194349.73],"ordem":27,"saldo_2027":null,"termino":null},
-"realista-28":{"cenario":"realista","cliente":"GAISSLER","contrato":"OBRA NOVA - RONCADOR - GAISSLER***","escopo":"Controle","local":"Roncador/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":28,"saldo_2027":null,"termino":null},
-"realista-29":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - GUARATUBA - ELLENCO","escopo":"Controle","local":"Guaratuba/PR","meses":[0,0,0,41157.21,41157.21,41157.21,41157.21,73207.64,73207.64,73207.64,73207.64,73207.64],"ordem":29,"saldo_2027":null,"termino":null},
-"realista-30":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - ROLÂNDIA - ELLENCO","escopo":"Controle","local":"Rolândia/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":30,"saldo_2027":null,"termino":null},
-"realista-31":{"cenario":"realista","cliente":"A DEFINIR","contrato":"OBRA NOVA - PROMAC LOTE 1 *****","escopo":"Controle","local":"Leste/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":31,"saldo_2027":null,"termino":null},
-"realista-32":{"cenario":"realista","cliente":"A DEFINIR","contrato":"OBRA NOVA - PROMAC LOTE 8 *****","escopo":"Controle","local":"Imbaú/PR","meses":[0,0,0,0,0,0,0,0,0,0,0,0],"ordem":32,"saldo_2027":null,"termino":null}
+"realista-27":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - SOROCABA - ELLENCO","escopo":"Controle","local":"Sorocaba/SP","meses":[0.0,0.0,97174.87,126327.32,246079.43,246079.43,246079.43,246079.43,323599.23,323599.23,323599.23,194349.73],"ordem":27,"saldo_2027":null,"termino":null},
+"realista-28":{"cenario":"realista","cliente":"GAISSLER","contrato":"OBRA NOVA - RONCADOR - GAISSLER***","escopo":"Controle","local":"Roncador/PR","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":28,"saldo_2027":null,"termino":null},
+"realista-29":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - GUARATUBA - ELLENCO","escopo":"Controle","local":"Guaratuba/PR","meses":[0.0,0.0,0.0,41157.21,41157.21,41157.21,41157.21,73207.64,73207.64,73207.64,73207.64,73207.64],"ordem":29,"saldo_2027":null,"termino":null},
+"realista-30":{"cenario":"realista","cliente":"ELLENCO","contrato":"OBRA NOVA - ROLÂNDIA - ELLENCO","escopo":"Controle","local":"Rolândia/PR","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":30,"saldo_2027":null,"termino":null},
+"realista-31":{"cenario":"realista","cliente":"A DEFINIR","contrato":"OBRA NOVA - PROMAC LOTE 1 *****","escopo":"Controle","local":"Leste/PR","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":31,"saldo_2027":null,"termino":null},
+"realista-32":{"cenario":"realista","cliente":"A DEFINIR","contrato":"OBRA NOVA - PROMAC LOTE 8 *****","escopo":"Controle","local":"Imbaú/PR","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":32,"saldo_2027":null,"termino":null},
+"realista-33":{"cenario":"realista","cliente":"PITANGA - MANOEL RIBAS","contrato":"PITANGA - MANOEL RIBAS","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":33,"saldo_2027":59646.46,"termino":null},
+"realista-34":{"cenario":"realista","cliente":"PITANGA - MANOEL RIBAS","contrato":"PITANGA - MANOEL RIBAS (AMBIENTAL)","escopo":"Projeto","local":"—","meses":[86000.0,173000.0,86000.0,86000.0,173000.0,86000.0,116666.67,116666.67,116666.67,116666.67,116666.67,116666.67],"ordem":34,"saldo_2027":2172330.17,"termino":null},
+"realista-35":{"cenario":"realista","cliente":"BARRA DO CHAPÉU","contrato":"BARRA DO CHAPÉU","escopo":"Projeto","local":"—","meses":[0.0,0.0,76000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":35,"saldo_2027":76000,"termino":null},
+"realista-36":{"cenario":"realista","cliente":"CSG","contrato":"CSG","escopo":"Projeto","local":"—","meses":[158333.33,158333.33,158333.33,158333.33,158333.33,158333.33,0,0,0,0,0,0],"ordem":36,"saldo_2027":4128779.49,"termino":null},
+"realista-37":{"cenario":"realista","cliente":"GARUVA - GUARATUBA","contrato":"GARUVA - GUARATUBA","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0,0,0,0,0,0],"ordem":37,"saldo_2027":0,"termino":null},
+"realista-38":{"cenario":"realista","cliente":"BALSA NOVA-MARIENTAL","contrato":"BALSA NOVA-MARIENTAL","escopo":"Projeto","local":"—","meses":[60515.0,60515.0,0.0,0.0,0.0,0.0,0,0,0,0,0,0],"ordem":38,"saldo_2027":300253.77,"termino":null},
+"realista-39":{"cenario":"realista","cliente":"BALSA NOVA-MARIENTAL","contrato":"BALSA NOVA-MARIENTAL (AMBIENTAL)","escopo":"Projeto","local":"—","meses":[62000.0,62000.0,37000.0,46000.0,37000.0,37000.0,30000.0,30000.0,30000.0,30000.0,30000.0,30000.0],"ordem":39,"saldo_2027":894740,"termino":null},
+"realista-40":{"cenario":"realista","cliente":"IBAITI","contrato":"IBAITI","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":40,"saldo_2027":84158.94,"termino":null},
+"realista-41":{"cenario":"realista","cliente":"IBAITI","contrato":"IBAITI (AMBIENTAL)","escopo":"Projeto","local":"—","meses":[74000.0,74000.0,170000.0,74000.0,74000.0,170000.0,113333.33,113333.33,113333.33,113333.33,113333.33,113333.33],"ordem":41,"saldo_2027":1755590.16,"termino":null},
+"realista-42":{"cenario":"realista","cliente":"EPR","contrato":"EPR L. PIONEIRO - LOTE 8","escopo":"Projeto","local":"—","meses":[88000.0,0.0,0.0,0.0,0.0,0.0,0,0,0,0,0,0],"ordem":42,"saldo_2027":591746.72,"termino":null},
+"realista-43":{"cenario":"realista","cliente":"KLABIN","contrato":"KLABIN - REVISÃO PR-340","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":43,"saldo_2027":0,"termino":null},
+"realista-44":{"cenario":"realista","cliente":"KLABIN","contrato":"KLABIN - INTERSEÇÃO ARAPOTI","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":44,"saldo_2027":0,"termino":null},
+"realista-45":{"cenario":"realista","cliente":"EPR","contrato":"EPR L. PIONEIRO - PTS ÔNIBUS","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":45,"saldo_2027":8143.15,"termino":null},
+"realista-46":{"cenario":"realista","cliente":"EIXO","contrato":"EIXO SP-304 - DISPOSITIVOS PIRACICABA","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":46,"saldo_2027":197471.89,"termino":null},
+"realista-47":{"cenario":"realista","cliente":"EIXO","contrato":"EIXO SP-284","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0,0,0,0,0,0],"ordem":47,"saldo_2027":946060.66,"termino":null},
+"realista-48":{"cenario":"realista","cliente":"EPR","contrato":"EPR VIA MINEIRA - PROJETOS 4° ANO","escopo":"Projeto","local":"—","meses":[184915.33,184915.33,288000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":48,"saldo_2027":1001830.66,"termino":null},
+"realista-49":{"cenario":"realista","cliente":"ECORODOVIAS","contrato":"ECOVIAS - CCPP","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":49,"saldo_2027":173673.68,"termino":null},
+"realista-50":{"cenario":"realista","cliente":"ECORODOVIAS","contrato":"ECO135 - FXS ADIC. ACOSTAMENTOS","escopo":"Projeto","local":"—","meses":[0.0,50000.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":50,"saldo_2027":1637971.35,"termino":null},
+"realista-51":{"cenario":"realista","cliente":"TIETÊ","contrato":"TIETÊ - PROJETOS RESTAURAÇÃO","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":51,"saldo_2027":23749.99,"termino":null},
+"realista-52":{"cenario":"realista","cliente":"TIETÊ","contrato":"TIETÊ - PROJ. RESTAURAÇÃO (ADITIVO)","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":52,"saldo_2027":719000.62,"termino":null},
+"realista-53":{"cenario":"realista","cliente":"TIETÊ","contrato":"TIETÊ - SP-101 CAMPINAS","escopo":"Projeto","local":"—","meses":[196643.2,196643.2,196643.2,196643.2,196643.2,196643.2,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":53,"saldo_2027":1179859.19,"termino":null},
+"realista-54":{"cenario":"realista","cliente":"TIETÊ","contrato":"TIETÊ - SP-113 / SP-308","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":54,"saldo_2027":765855,"termino":null},
+"realista-55":{"cenario":"realista","cliente":"VIA CAMPO","contrato":"VIA CAMPO - TERMO ARROLAMENTO","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":55,"saldo_2027":58744.8,"termino":null},
+"realista-56":{"cenario":"realista","cliente":"VIA CAMPO","contrato":"VIA CAMPO - BLOCO G","escopo":"Projeto","local":"—","meses":[78306.0,101143.0,93530.0,187061.0,69602.0,60898.0,24105.5,24105.5,24105.5,24105.5,24105.5,24105.5],"ordem":56,"saldo_2027":898000,"termino":null},
+"realista-57":{"cenario":"realista","cliente":"ECORODOVIAS","contrato":"ECOVIAS CAPIXABA","escopo":"Projeto","local":"—","meses":[89346.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":57,"saldo_2027":89346.1,"termino":null},
+"realista-58":{"cenario":"realista","cliente":"EPR","contrato":"EPR LP 124.26 - PAVIMENTO PR092","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":58,"saldo_2027":0,"termino":null},
+"realista-59":{"cenario":"realista","cliente":"AGRIMAT","contrato":"AGRIMAT","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":59,"saldo_2027":0,"termino":null},
+"realista-60":{"cenario":"realista","cliente":"VIA ARAUCÁRIA","contrato":"VIA ARAUCÁRIA - CONSULTORIA PAVIM.","escopo":"Projeto","local":"—","meses":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"ordem":60,"saldo_2027":226000,"termino":null},
+"realista-61":{"cenario":"realista","cliente":"SONDAGEM","contrato":"SONDAGEM","escopo":"Sondagem","local":"—","meses":[200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0],"ordem":61,"saldo_2027":null,"termino":null}
 }</script>
 <script>
 const FONTE = '<!doctype html>\n' + document.documentElement.outerHTML;
 (() => {
 const SC = [
-  {k: 'realista', n: 'Realista', cls: 're', v: 'var(--c-re)', crit: 'Cenário realista da planilha de planejamento (posição em 22/10/2026), com os contratos de supervisão, controle, laboratório e levantamento. Valores por mês da medição.'},
+  {k: 'realista', n: 'Realista', cls: 're', v: 'var(--c-re)', crit: 'Cenário realista da planilha de planejamento (posição em 23/10/2026), com os contratos de supervisão, controle, laboratório, levantamento, projeto e sondagem. Valores por mês da medição.'},
 ];
 let MEDIA_2026 = 0; // definida abaixo (soma das médias de 2026 por escopo)
-const MEDIA_2026_ESC = {'Supervisão': 2117550.31, 'Controle': 910000, 'Laboratório central': 278680.79, 'Levantamento': 20032.48}; // médias mensais de 2026 por escopo, informadas pelo usuário
-MEDIA_2026_ESC.Todos = MEDIA_2026_ESC['Supervisão'] + MEDIA_2026_ESC['Controle'] + MEDIA_2026_ESC['Laboratório central'] + MEDIA_2026_ESC['Levantamento']; // todos os escopos = soma
+const MEDIA_2026_ESC = {'Supervisão': 2317550.31, 'Controle': 910000, 'Laboratório central': 278680.79, 'Levantamento': 20032.48, 'Projeto': 770973.67, 'Sondagem': 184688.87}; // médias mensais de 2026 (até agosto) por escopo, informadas pelo usuário
+MEDIA_2026_ESC.Todos = Object.values(MEDIA_2026_ESC).reduce((a, b) => a + b, 0); // todos os escopos = soma
 const PREVISAO_2026 = {};
 MEDIA_2026 = MEDIA_2026_ESC.Todos;
-const ESC_ORDEM = ['Supervisão', 'Controle', 'Levantamento', 'Laboratório central'];
+const ESC_ORDEM = ['Supervisão', 'Controle', 'Projeto', 'Laboratório central', 'Sondagem', 'Levantamento'];
 const R26 = {k: 'r26', n: 'Média 2026', cls: 'r26', v: 'var(--c-26)'};
 const byK = Object.fromEntries(SC.map((s) => [s.k, s]));
 const MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -376,7 +405,8 @@ const $ = (id) => document.getElementById(id);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
 
 const st = {cliente: 'Todos', cen: new Set([...SC.map((s) => s.k), 'r26']), modo: 'mensal', tipo: 'linhas', tab: 'realista', media: true, abcCen: 'realista', abcPor: 'cliente', escopo: 'Todos'};
-const ESC_COR = ['var(--c-re)', 'var(--c-ot)', 'var(--c-pe)', '#8a5cc2', 'var(--c-26)', '#b8860b'];
+const ESC_COR = ['var(--c-re)', 'var(--c-ot)', 'var(--c-pe)', '#8a5cc2', '#c48a00', '#1f9e9e', 'var(--c-26)'];
+const ESC_COR_NOME = {'Supervisão': 'var(--c-re)', 'Controle': 'var(--c-ot)', 'Laboratório central': 'var(--c-pe)', 'Levantamento': '#8a5cc2', 'Projeto': '#c48a00', 'Sondagem': '#1f9e9e'};
 try { const t = localStorage.getItem('cen27-tab'); if (byK[t]) st.tab = t; } catch (e) {}
 let docs = new Map(); // id -> data
 let db = null, podeEditar = true, carregado = false;
@@ -583,7 +613,7 @@ function grafTotal() {
   const g = svg.append('g'); eixoY(g, y, W, ml, mr);
   g.append('line').attr('x1', ml).attr('x2', W - mr).attr('y1', y(0)).attr('y2', y(0)).style('stroke', 'var(--line-2)');
   const bw = Math.min(64, x.bandwidth()); const bx = (o) => x(o.nome) + (x.bandwidth() - bw) / 2;
-  g.selectAll('rect.b').data(rows).join('rect').attr('x', bx).attr('width', bw).attr('y', (o) => y(o.total)).attr('height', (o) => Math.max(0, y(0) - y(o.total))).attr('rx', 4).style('fill', (o, i) => ESC_COR[i % ESC_COR.length]);
+  g.selectAll('rect.b').data(rows).join('rect').attr('x', bx).attr('width', bw).attr('y', (o) => y(o.total)).attr('height', (o) => Math.max(0, y(0) - y(o.total))).attr('rx', 4).style('fill', (o, i) => ESC_COR_NOME[o.nome] || ESC_COR[i % ESC_COR.length]);
   g.selectAll('text.v').data(rows).join('text').attr('x', (o) => bx(o) + bw / 2).attr('y', (o) => y(o.total) - 8).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--fg)').text((o) => brlc.format(o.total) + ' · ' + Math.round(o.total / tot * 100) + '%');
   g.selectAll('text.c').data(rows).join('text').attr('x', (o) => bx(o) + bw / 2).attr('y', H - 8).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--muted)').text((o) => o.nome);
 }
@@ -717,7 +747,7 @@ const COORD = {
   'francisco beltrao/pr': [-26.0817, -53.0535], 'pato branco/pr': [-26.2295, -52.6705], 'campo mourao/pr': [-24.0463, -52.3780], 'cornelio procopio/pr': [-23.1814, -50.6464]
 };
 const normLoc = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s*\/\s*/g, '/').trim();
-const ESC_MAPA = {'Supervisão': 'var(--c-re)', 'Controle': 'var(--c-ot)', 'Laboratório central': 'var(--c-pe)', 'Levantamento': '#8a5cc2'};
+const ESC_MAPA = {'Supervisão': 'var(--c-re)', 'Controle': 'var(--c-ot)', 'Laboratório central': 'var(--c-pe)', 'Levantamento': '#8a5cc2', 'Projeto': '#c48a00', 'Sondagem': '#1f9e9e'};
 const corEsc = (e) => ESC_MAPA[e] || 'var(--c-26)';
 const corReal = (v) => { const m = /^var\((--[^)]+)\)$/.exec(v); return m ? getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || '#2a78d6' : v; };
 let mapa = null, camada = null, marcadores = new Map(), enquadrou = '';
@@ -1019,7 +1049,7 @@ $('b-csv').addEventListener('click', async () => {
 let rz; new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(renderGraficos, 120); }).observe($('sec-mensal'));
 
 (() => {
-  // Arquivo independente: valores da planilha de 22/10/2026 + ajustes salvos neste navegador
+  // Arquivo independente: valores da planilha de 23/10/2026 + ajustes salvos neste navegador
   const SNAP = JSON.parse(document.getElementById('snap').textContent);
   let h = 0; for (const ch of document.getElementById('snap').textContent) h = (h * 31 + ch.charCodeAt(0)) | 0;
   CHAVE = 'afirma-cen27-' + (h >>> 0).toString(36);
