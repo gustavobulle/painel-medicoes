@@ -337,9 +337,9 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     <style>:root { --cc-outros: #7b5ea7; } :root[data-theme="dark"] { --cc-outros: #b9a0dc; } @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cc-outros: #b9a0dc; } }</style>
     <h2>Custo por ciclo</h2>
     <p class="fx-take" id="cc-take">—</p>
-    <p class="fx-note">Custo previsto de cada ciclo com os recursos alocados definidos abaixo (ou as premissas gerais), comparado à medição do ciclo (percentual do cronograma REV03 × R$ 347.656,19). Cada dia corrido entra no ciclo do próximo dia de campo, então fins de semana e o recesso pertencem ao ciclo em que caem. A mobilização (13/10) aparece separada, com sua medição de 5,75%.</p>
+    <p class="fx-note">Custo previsto de cada ciclo com o período e os recursos definidos abaixo (ou as premissas gerais), comparado à medição do ciclo (percentual do cronograma REV03 × R$ 347.656,19). A produção de cada ciclo é fixa (os km do ciclo); mudar o período muda os dias, o custo e a produtividade necessária.</p>
     <h3 style="margin:8px 0 0;font-size:var(--cds-font-size-body);font-weight:600">Recursos alocados por ciclo</h3>
-    <p class="fx-note">Defina quantas pessoas e veículos ficam alocados em cada ciclo, a diária de hotel (por pessoa, por noite) e o combustível (mensal, por veículo). O painel calcula o custo do período do ciclo, a produção (km) e o custo por km. Campo vazio usa a premissa geral, que aparece em cinza. Pessoal e locação contam todos os dias corridos do ciclo; hotel conta as noites fora do recesso; combustível é o gasto mensal por veículo, contado nos dias em operação. Passe o mouse sobre a linha para ver a composição.</p>
+    <p class="fx-note">Edite o início e o fim de cada ciclo conforme a produtividade real, e defina pessoas, veículos, diária de hotel (por pessoa, por noite) e combustível (mensal, por veículo). Se você mudar só o início ou só o fim de um ciclo, os ciclos seguintes andam junto, mantendo a quantidade de dias de campo da simulação; datas em azul são as que você fixou. O painel mostra os dias de campo, os km/dia necessários (em vermelho quando passam de 15% acima da produção da simulação), o custo do período e o custo por km. Campo vazio usa a premissa geral, que aparece em cinza. Pessoal e locação contam todos os dias corridos; hotel conta as noites fora do recesso; combustível conta os dias em operação. Passe o mouse sobre a linha para ver a composição.</p>
     <div class="fx-tablebox" style="max-height:none">
       <table id="tab-ajustes">
         <thead><tr>
@@ -347,17 +347,17 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
           <th><button type="button" tabindex="-1">Período</button></th>
           <th class="n"><button type="button" tabindex="-1">Pessoas</button></th>
           <th class="n"><button type="button" tabindex="-1">Veículos</button></th>
-          <th class="n"><button type="button" tabindex="-1">Hotel/noite (R$)</button></th>
-          <th class="n"><button type="button" tabindex="-1">Comb./mês (R$)</button></th>
-          <th class="n"><button type="button" tabindex="-1">Outros (R$)</button></th>
-          <th class="n"><button type="button" tabindex="-1">Custo período</button></th>
+          <th class="n"><button type="button" tabindex="-1">Hotel/noite</button></th>
+          <th class="n"><button type="button" tabindex="-1">Comb./mês</button></th>
+          <th class="n"><button type="button" tabindex="-1">Outros</button></th>
+          <th class="n"><button type="button" tabindex="-1">Custo do ciclo</button></th>
           <th class="n"><button type="button" tabindex="-1">km</button></th>
           <th class="n"><button type="button" tabindex="-1">Custo/km</button></th>
         </tr></thead>
         <tbody></tbody>
       </table>
     </div>
-    <button type="button" class="fx-btn" id="cc-aj-limpar">Voltar às premissas gerais</button>
+    <button type="button" class="fx-btn" id="cc-aj-limpar">Voltar aos períodos e premissas gerais</button>
     <p class="fx-note" id="cc-aj-aviso" hidden></p>
     <h3 style="margin:8px 0 0;font-size:var(--cds-font-size-body);font-weight:600">Custo previsto × medição</h3>
     <div class="fx-legend" id="cc-leg"></div>
@@ -811,7 +811,7 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
 <script>
 (() => {
   // Custo por ciclo: distribui o custo diário da simulação entre mobilização e ciclos e compara com a medição de cada um
-  const { C, D, iso, simular, ri, rf } = window.fxSim;
+  const { C, D, iso, simular, ri, rf, prazo } = window.fxSim;
   const loc = d3.formatLocale({ decimal: ',', thousands: '.', grouping: [3], currency: ['R$ ', ''] });
   const brl0 = loc.format('$,.0f'), brl2 = loc.format('$,.2f'), f0 = loc.format(',.0f'), f1 = loc.format(',.1f'), fp = loc.format('.1%');
   const brlAxis = (v) => Math.abs(v) >= 1000 ? `R$ ${loc.format(',.0f')(v / 1000)} mil` : brl0(v);
@@ -833,25 +833,53 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
   const COMP = [['pessoal', 'Pessoal'], ['hotel', 'Hotel'], ['locacao', 'Locação'], ['combustivel', 'Combustível'], ['outros', 'Outros']];
   const MOB = 'Mobilização';
 
+  const DESMOB = 'Desmobilização';
+  const dia = (d, n) => new Date(d.getTime() + n * 864e5);
+  const ehRec = (x) => x >= ri && x <= rf;
+  const ehCampo = (x) => { const w = x.getUTCDay(); return w !== 0 && w !== 6 && !C.FERIADOS.has(iso(x)) && !ehRec(x); };
+  const ajData = (n, k) => { const v = aj[n] && aj[n][k]; return v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? D(v) : null; };
+
+  // Períodos: padrão da simulação; início/fim editáveis. Sem fim informado, o ciclo mantém o número de dias de campo da simulação a partir do início.
+  function periodos(s) {
+    const ciclos = C.CICLOS.map((c) => c[0]);
+    const padrao = new Map(ciclos.map((c) => [c, s.dias.filter((x) => x.ciclo === c)]));
+    const res = [];
+    const mIni = ajData(MOB, 'ini') || s.ini, mFim = ajData(MOB, 'fim') || mIni;
+    res.push({ nome: MOB, ini: mIni, fim: mFim < mIni ? mIni : mFim, km: 0, auto: !ajData(MOB, 'ini') });
+    let prevFim = res[0].fim;
+    for (const c of ciclos) {
+      const dd = padrao.get(c) || []; if (!dd.length) continue;
+      const iniPad = dia(prevFim, 1);
+      const ini = ajData(c, 'ini') || iniPad;
+      let fim = ajData(c, 'fim');
+      if (!fim) { let n = 0, x = ini; while (true) { if (ehCampo(x)) { n++; if (n >= dd.length) break; } x = dia(x, 1); if (x - ini > 400 * 864e5) break; } fim = x; }
+      if (fim < ini) fim = ini;
+      res.push({ nome: c, ini, fim, km: d3.sum(dd, (x) => x.km) });
+      prevFim = fim;
+    }
+    res.push({ nome: DESMOB, ini: dia(prevFim, 1), fim: dia(prevFim, 1), km: 0 });
+    return res;
+  }
+
   function porCiclo(s, p) {
     const cmes = num(p.salario, 0) * (1 + num(p.encargos_pct, 0) / 100);
     const R = (n) => ({ col: val(n, 'colaboradores', p), vei: val(n, 'veiculos', p), hot: val(n, 'diaria_hotel', p), comb: val(n, 'combustivel', p) });
-    const nomes = [MOB, ...C.CICLOS.map((c) => c[0])];
-    const out = new Map(nomes.map((n) => [n, { nome: n, pessoal: 0, hotel: 0, locacao: 0, combustivel: 0, outros: val(n, 'outros', p), rec: R(n), km: 0, diasCampo: 0, diasCorr: 0, ini: null, fim: null, medicao: n === MOB ? C.MOBILIZACAO_PCT * C.VALOR_RECEBER : (C.CICLOS.find((c) => c[0] === n) || [, 0])[1] * C.VALOR_RECEBER }]));
-    const campo = s.dias; let k = 0;
-    for (let x = s.ini; x <= s.fim; x = new Date(x.getTime() + 864e5)) {
-      const rec = x >= ri && x <= rf;
-      while (k < campo.length && campo[k].date < x) k++;
-      const nome = iso(x) === iso(s.ini) ? MOB : (k < campo.length ? campo[k].ciclo : campo[campo.length - 1].ciclo);
-      const o = out.get(nome);
-      const r = o.rec;
-      o.diasCorr++; o.pessoal += r.col * cmes / C.DIAS_MES; o.locacao += r.vei * num(p.locacao, 0) / C.DIAS_MES;
-      if (!rec) { o.combustivel += r.vei * r.comb / C.DIAS_MES; o.diasOp = (o.diasOp || 0) + 1; }
-      if (x < s.termino && !rec) { o.hotel += r.col * r.hot; o.noites = (o.noites || 0) + 1; }
-      if (!o.ini) o.ini = x; o.fim = x;
-      if (k < campo.length && iso(campo[k].date) === iso(x)) { o.km += campo[k].km; o.diasCampo++; }
-    }
-    return nomes.map((n) => { const o = out.get(n); o.custo = o.pessoal + o.hotel + o.locacao + o.combustivel + o.outros; o.saldo = o.medicao - o.custo; return o; }).filter((o) => o.diasCorr > 0 || o.medicao > 0);
+    const pers = periodos(s);
+    const ultimoCampo = pers[pers.length - 2].fim;
+    return pers.map((pp) => {
+      const n = pp.nome, r = R(n);
+      const o = { nome: n, ini: pp.ini, fim: pp.fim, km: pp.km, rec: r, pessoal: 0, hotel: 0, locacao: 0, combustivel: 0, outros: val(n, 'outros', p), diasCorr: 0, diasCampo: 0, diasOp: 0, noites: 0,
+        medicao: n === MOB ? C.MOBILIZACAO_PCT * C.VALOR_RECEBER : n === DESMOB ? 0 : (C.CICLOS.find((c) => c[0] === n) || [, 0])[1] * C.VALOR_RECEBER };
+      for (let x = pp.ini; x <= pp.fim; x = dia(x, 1)) {
+        o.diasCorr++; o.pessoal += r.col * cmes / C.DIAS_MES; o.locacao += r.vei * num(p.locacao, 0) / C.DIAS_MES;
+        if (!ehRec(x)) { o.combustivel += r.vei * r.comb / C.DIAS_MES; o.diasOp++; }
+        // Hotel: noites fora do recesso; não há pernoite no último dia de campo nem na desmobilização
+        if (!ehRec(x) && n !== DESMOB && x < ultimoCampo) { o.hotel += r.col * r.hot; o.noites++; }
+        if (n !== MOB && n !== DESMOB && ehCampo(x)) o.diasCampo++;
+      }
+      o.custo = o.pessoal + o.hotel + o.locacao + o.combustivel + o.outros; o.saldo = o.medicao - o.custo;
+      return o;
+    });
   }
 
   const textW = (svg, t) => { const e = svg.append('text').attr('font-size', 12).text(t); const w = e.node().getComputedTextLength(); e.remove(); return w; };
@@ -870,7 +898,7 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Custo previsto por ciclo comparado à medição de cada ciclo');
     const left = Math.ceil(d3.max(linhas, (o) => textW(svg, o.nome))) + 12;
     const curto = W < 640;
-    const labs = linhas.map((o) => curto ? `${o.saldo >= 0 ? '+' : '−'}${brlAxis(Math.abs(o.saldo))}` : `saldo previsto ${brlAxis(o.saldo)}`);
+    const labs = linhas.map((o) => curto ? `${o.saldo >= 0 ? '+' : '−'}${brlAxis(Math.abs(o.saldo))}` : `saldo previsto ${o.saldo < 0 ? '−' : ''}${brlAxis(Math.abs(o.saldo))}`);
     const right = Math.ceil(d3.max(labs, (t) => textW(svg, t))) + 16;
     const xmax = d3.max(linhas, (o) => Math.max(o.custo, o.medicao, num(real[o.nome], 0))) || 1;
     const x = d3.scaleLinear([0, xmax], [left, W - right]).nice();
@@ -918,7 +946,7 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
       const tr = document.createElement('tr');
       td(tr, o.nome).style.fontWeight = '600';
       td(tr, o.ini ? per(o.ini, o.fim) : '—').style.whiteSpace = 'nowrap';
-      td(tr, o.nome === MOB ? '—' : f0(o.diasCampo), 'n');
+      td(tr, o.nome === MOB || o.nome === DESMOB ? '—' : f0(o.diasCampo), 'n');
       td(tr, o.km ? f1(o.km) : '—', 'n');
       td(tr, brl0(o.custo), 'n');
       td(tr, o.km ? brl2(o.custo / o.km) : '—', 'n');
@@ -959,12 +987,12 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
   function drawTake(linhas, rr) {
     const el = document.getElementById('cc-take'); el.replaceChildren();
     const b = (txt) => { const x = document.createElement('b'); x.textContent = txt; return x; };
-    const ciclos = linhas.filter((o) => o.nome !== MOB);
+    const ciclos = linhas.filter((o) => o.nome !== MOB && o.nome !== DESMOB);
     const pior = ciclos.reduce((a, o) => (o.saldo / o.medicao < a.saldo / a.medicao ? o : a), ciclos[0]);
     const neg = ciclos.filter((o) => o.saldo < 0);
     if (neg.length) el.append(b(neg.map((o) => o.nome).join(' e ')), document.createTextNode(` ${neg.length > 1 ? 'custam' : 'custa'} mais do que ${neg.length > 1 ? 'medem' : 'mede'}: ${pior.nome} fecha com saldo de `), b(brl0(pior.saldo)), document.createTextNode(` (${fp(pior.saldo / pior.medicao)} da medição).`));
     else el.append(document.createTextNode('Todos os ciclos ficam com saldo positivo; o de menor margem é o '), b(pior.nome), document.createTextNode(`, com ${fp(pior.saldo / pior.medicao)} da medição (${brl0(pior.saldo)}).`));
-    if (pior.diasCorr > pior.diasCampo * 1.6 && pior.nome !== MOB) el.append(document.createTextNode(` Ele tem ${f0(pior.diasCorr)} dias corridos para ${f0(pior.diasCampo)} de campo, e pessoal e locação correm todos os dias.`));
+    if (pior.diasCorr > pior.diasCampo * 1.6) el.append(document.createTextNode(` Ele tem ${f0(pior.diasCorr)} dias corridos para ${f0(pior.diasCampo)} de campo, e pessoal e locação correm todos os dias.`));
     if (rr.nReal) { const dv = rr.totReal - rr.totPrevReal; el.append(document.createTextNode(` Nos ciclos com custo realizado, o gasto ficou `), b(`${brl0(Math.abs(dv))} ${dv > 0 ? 'acima' : 'abaixo'}`), document.createTextNode(' do previsto.')); }
   }
 
@@ -975,15 +1003,34 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
       const tr = document.createElement('tr');
       td(tr, o.nome).style.fontWeight = '600';
       const pc = td(tr, ''); pc.style.whiteSpace = 'nowrap';
-      const l1 = document.createElement('div'); l1.textContent = per(o.ini, o.fim);
-      const l2 = document.createElement('div'); l2.className = 'fx-sub'; l2.textContent = `${f0(o.diasCorr)} ${o.diasCorr === 1 ? 'dia corrido' : 'dias corridos'} · ${f0(o.diasCampo)} de campo`;
-      pc.append(l1, l2);
+      const box = document.createElement('div'); box.style.cssText = 'display:grid;grid-template-columns:auto auto;align-items:center;gap:2px 6px;justify-content:start';
+      const mkDate = (k, lab, v) => {
+        const inp = document.createElement('input'); inp.type = 'date'; inp.value = iso(v);
+        inp.setAttribute('aria-label', `${lab} · ${o.nome}`);
+        const fixo = !!ajData(o.nome, k);
+        inp.style.cssText = `width:8rem;box-sizing:border-box;padding:1px 4px;border:1px solid ${fixo ? 'var(--cds-chart-reference)' : 'var(--color-border-line)'};border-radius:var(--cds-radius);background:var(--color-bg);color:${fixo ? 'var(--color-fg)' : 'var(--color-fg-muted)'};font:inherit;font-weight:${fixo ? 600 : 400}`;
+        if (o.nome === DESMOB) inp.disabled = true;
+        inp.addEventListener('change', () => {
+          aj[o.nome] = aj[o.nome] || {};
+          if (!inp.value) delete aj[o.nome][k]; else aj[o.nome][k] = inp.value;
+          if (k === 'ini' && aj[o.nome].fim && aj[o.nome].fim < inp.value) delete aj[o.nome].fim;
+          saveAj(); setTimeout(() => dash.setParams({}), 0);
+        });
+        return inp;
+      };
+      const lb = (t) => { const x = document.createElement('span'); x.textContent = t; x.className = 'fx-sub'; return x; };
+      box.append(lb('de'), mkDate('ini', 'Início', o.ini), lb('a'), mkDate('fim', 'Fim', o.fim));
+      const l2 = document.createElement('div'); l2.className = 'fx-sub';
+      const kmd = o.km && o.diasCampo ? ` · ${f1(o.km / o.diasCampo)} km/dia` : '';
+      l2.textContent = `${f0(o.diasCorr)} ${o.diasCorr === 1 ? 'dia corrido' : 'dias corridos'}` + (o.nome === MOB || o.nome === DESMOB ? '' : ` · ${f0(o.diasCampo)} de campo${kmd}`);
+      if (o.km && o.diasCampo && o.km / o.diasCampo > 1.15 * Number(p.km_dia)) l2.classList.add('fx-badv');
+      pc.append(box, l2);
       for (const [k, lab, step] of AJ) {
         const c = td(tr, '', 'n');
         const inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.step = String(step); inp.inputMode = 'decimal';
         inp.placeholder = k === 'outros' ? '0' : loc.format(',.0f')(num(p[k], 0));
         inp.setAttribute('aria-label', `${lab} · ${o.nome}`);
-        const w = k === 'colaboradores' || k === 'veiculos' ? '3.6rem' : '5.6rem';
+        const w = k === 'colaboradores' || k === 'veiculos' ? '3.2rem' : '5rem';
         inp.style.cssText = `width:${w};box-sizing:border-box;padding:2px 6px;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg);font:inherit;text-align:right`;
         const v = ajv(o.nome, k); if (Number.isFinite(v)) { inp.value = v; inp.style.borderColor = 'var(--cds-chart-reference)'; inp.style.fontWeight = '600'; }
         inp.addEventListener('change', () => {
@@ -1019,9 +1066,10 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     drawAjustes(linhas, p);
     const rr = drawTable(linhas);
     const nAj = Object.values(aj).reduce((a, x) => a + Object.keys(x || {}).length, 0);
+    const ultimo = linhas[linhas.length - 2];
     const dif = d3.sum(linhas, (o) => o.custo) - s.total;
     const av = document.getElementById('cc-aj-aviso'); av.hidden = !nAj;
-    if (nAj) av.textContent = `Com os recursos definidos por ciclo, o custo previsto soma ${brl0(d3.sum(linhas, (o) => o.custo))}, ${brl0(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'} da simulação geral (${brl0(s.total)}).`;
+    if (nAj) { av.textContent = `Com os períodos e recursos definidos por ciclo, o custo previsto soma ${brl0(d3.sum(linhas, (o) => o.custo))}, ${brl0(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'} da simulação geral (${brl0(s.total)}). Último dia de campo: ${dmy(ultimo.fim)}` + (ultimo.fim > prazo ? `, depois do prazo de ${dmy(prazo)}.` : `, dentro do prazo de ${dmy(prazo)}.`); av.className = 'fx-note' + (ultimo.fim > prazo ? ' fx-badv' : ''); }
     drawTake(linhas, rr);
     drawChart(document.getElementById('cc-chart'), linhas);
     if (foco) { const el = document.querySelector(`#custo-ciclo input[aria-label="${CSS.escape(foco)}"]`); if (el) el.focus(); }
