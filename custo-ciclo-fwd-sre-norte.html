@@ -256,9 +256,9 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     <style>:root { --cc-outros: #7b5ea7; } :root[data-theme="dark"] { --cc-outros: #b9a0dc; } @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cc-outros: #b9a0dc; } }</style>
     <h2>Custo por ciclo</h2>
     <p class="fx-take" id="cc-take">—</p>
-    <p class="fx-note">Custo previsto de cada ciclo com o período e os recursos definidos abaixo (ou as premissas gerais), comparado à medição do ciclo (percentual do cronograma REV03 × R$ 347.656,19). A produção de cada ciclo é fixa (os km do ciclo); mudar o período muda os dias, o custo e a produtividade necessária.</p>
+    <p class="fx-note">Custo previsto de cada ciclo com o período e os recursos definidos abaixo (ou as premissas gerais), comparado à medição do ciclo (percentual do cronograma REV03 × R$ 347.656,19). A produção de cada ciclo é a prevista na simulação, ou o km realizado que você informar; a medição continua sendo o percentual do cronograma.</p>
     <h3 style="margin:8px 0 0;font-size:var(--cds-font-size-body);font-weight:600">Recursos alocados por ciclo</h3>
-    <p class="fx-note">Edite o início e o fim de cada ciclo conforme a produtividade real, e defina pessoas, veículos, diária de hotel (por pessoa, por noite) e combustível (mensal, por veículo). Se você mudar só o início ou só o fim de um ciclo, os ciclos seguintes andam junto, mantendo a quantidade de dias de campo da simulação; datas em azul são as que você fixou. O painel mostra os dias de campo, os km/dia necessários (em vermelho quando passam de 15% acima da produção da simulação), o custo do período e o custo por km. Campo vazio usa a premissa geral, que aparece em cinza. Pessoal e locação contam todos os dias corridos; hotel conta as noites fora do recesso; combustível conta os dias em operação. Passe o mouse sobre a linha para ver a composição.</p>
+    <p class="fx-note">Edite o início e o fim de cada ciclo conforme a produtividade real, e defina pessoas, veículos, diária de hotel (por pessoa, por noite) e combustível (mensal, por veículo). Se você mudar só o início ou só o fim de um ciclo, os ciclos seguintes andam junto, mantendo a quantidade de dias de campo da simulação; datas em azul são as que você fixou. Informe também o km realizado de cada ciclo (o previsto aparece em cinza). O painel mostra os dias de campo, os km/dia necessários (em vermelho quando passam de 15% acima da produção da simulação), o custo do período e o custo por km. Campo vazio usa a premissa geral, que aparece em cinza. Pessoal e locação contam todos os dias corridos; hotel conta as noites fora do recesso; combustível conta os dias em operação. Passe o mouse sobre a linha para ver a composição.</p>
     <div class="fx-tablebox" style="max-height:none">
       <table id="tab-ajustes">
         <thead><tr>
@@ -289,7 +289,6 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
         <thead><tr>
           <th><button type="button" tabindex="-1">Ciclo</button></th>
           <th><button type="button" tabindex="-1">Período</button></th>
-          <th class="n"><button type="button" tabindex="-1">Dias campo</button></th>
           <th class="n"><button type="button" tabindex="-1">km</button></th>
           <th class="n"><button type="button" tabindex="-1">Custo prev.</button></th>
           <th class="n"><button type="button" tabindex="-1">Custo/km</button></th>
@@ -299,6 +298,7 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
           <th class="n"><button type="button" tabindex="-1">Custo real (R$)</button></th>
           <th class="n"><button type="button" tabindex="-1">Real − prev.</button></th>
           <th class="n"><button type="button" tabindex="-1">Saldo real</button></th>
+          <th class="n"><button type="button" tabindex="-1">Custo/km real</button></th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -430,7 +430,8 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
       let fim = ajData(c, 'fim');
       if (!fim) { let n = 0, x = ini; while (true) { if (ehCampo(x)) { n++; if (n >= dd.length) break; } x = dia(x, 1); if (x - ini > 400 * 864e5) break; } fim = x; }
       if (fim < ini) fim = ini;
-      res.push({ nome: c, ini, fim, km: d3.sum(dd, (x) => x.km) });
+      const kmPlan = d3.sum(dd, (x) => x.km), kmAj = ajv(c, 'km');
+      res.push({ nome: c, ini, fim, kmPlan, km: Number.isFinite(kmAj) ? kmAj : kmPlan, kmReal: Number.isFinite(kmAj) });
       prevFim = fim;
     }
     res.push({ nome: DESMOB, ini: dia(prevFim, 1), fim: dia(prevFim, 1), km: 0 });
@@ -444,7 +445,7 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     const ultimoCampo = pers[pers.length - 2].fim;
     return pers.map((pp) => {
       const n = pp.nome, r = R(n);
-      const o = { nome: n, ini: pp.ini, fim: pp.fim, km: pp.km, rec: r, pessoal: 0, hotel: 0, locacao: 0, combustivel: 0, outros: val(n, 'outros', p), diasCorr: 0, diasCampo: 0, diasOp: 0, noites: 0,
+      const o = { nome: n, ini: pp.ini, fim: pp.fim, km: pp.km, kmPlan: pp.kmPlan || 0, kmReal: !!pp.kmReal, rec: r, pessoal: 0, hotel: 0, locacao: 0, combustivel: 0, outros: val(n, 'outros', p), diasCorr: 0, diasCampo: 0, diasOp: 0, noites: 0,
         medicao: n === MOB ? C.MOBILIZACAO_PCT * C.VALOR_RECEBER : n === DESMOB ? 0 : (C.CICLOS.find((c) => c[0] === n) || [, 0])[1] * C.VALOR_RECEBER };
       for (let x = pp.ini; x <= pp.fim; x = dia(x, 1)) {
         o.diasCorr++; o.pessoal += r.col * cmes / C.DIAS_MES; o.locacao += r.vei * num(p.locacao, 0) / C.DIAS_MES;
@@ -517,13 +518,12 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
   function drawTable(linhas) {
     const tb = document.querySelector('#tab-custo-ciclo tbody'); tb.replaceChildren();
     const td = (tr, txt, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = txt; tr.appendChild(c); return c; };
-    let totReal = 0, nReal = 0, totPrevReal = 0, totMedReal = 0;
+    let totReal = 0, nReal = 0, totPrevReal = 0, totMedReal = 0, totKmReal = 0;
     for (const o of linhas) {
       const tr = document.createElement('tr');
       td(tr, o.nome).style.fontWeight = '600';
       td(tr, o.ini ? per(o.ini, o.fim) : '—').style.whiteSpace = 'nowrap';
-      td(tr, o.nome === MOB || o.nome === DESMOB ? '—' : f0(o.diasCampo), 'n');
-      td(tr, o.km ? f1(o.km) : '—', 'n');
+      const kc = td(tr, o.km ? f1(o.km) : '—', 'n'); if (o.kmReal) { kc.style.fontWeight = '600'; kc.title = `Informado (previsto ${f1(o.kmPlan)} km)`; }
       td(tr, brl0(o.custo), 'n');
       td(tr, o.km ? brl2(o.custo / o.km) : '—', 'n');
       td(tr, brl0(o.medicao), 'n');
@@ -544,18 +544,19 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
       if (Number.isFinite(r)) {
         const dv = r - o.custo; td(tr, (dv > 0 ? '+' : '') + brl0(dv), 'n ' + (dv <= 0 ? 'fx-good' : 'fx-badv'));
         const sr = o.medicao - r; td(tr, brl0(sr), 'n ' + (sr >= 0 ? 'fx-good' : 'fx-badv'));
-        totReal += r; nReal++; totPrevReal += o.custo; totMedReal += o.medicao;
-      } else { td(tr, '—', 'n'); td(tr, '—', 'n'); }
+        td(tr, o.km ? brl2(r / o.km) : '—', 'n');
+        totReal += r; nReal++; totPrevReal += o.custo; totMedReal += o.medicao; totKmReal += o.km;
+      } else { td(tr, '—', 'n'); td(tr, '—', 'n'); td(tr, '—', 'n'); }
       tb.appendChild(tr);
     }
     const tot = (k) => d3.sum(linhas, (o) => o[k]);
     const tr = document.createElement('tr');
     const tt = (txt, cls) => { const c = td(tr, txt, cls); c.style.fontWeight = '600'; return c; };
     const custo = tot('custo'), med = tot('medicao'), km = tot('km');
-    tt('Total'); tt(per(linhas[0].ini, linhas[linhas.length - 1].fim)).style.whiteSpace = 'nowrap'; tt(f0(tot('diasCampo')), 'n'); tt(f1(km), 'n'); tt(brl0(custo), 'n'); tt(brl2(custo / km), 'n'); tt(brl0(med), 'n');
+    tt('Total'); tt(per(linhas[0].ini, linhas[linhas.length - 1].fim)).style.whiteSpace = 'nowrap'; tt(f1(km), 'n'); tt(brl0(custo), 'n'); tt(brl2(custo / km), 'n'); tt(brl0(med), 'n');
     tt(brl0(med - custo), 'n ' + (med - custo >= 0 ? 'fx-good' : 'fx-badv')); tt(fp((med - custo) / med), 'n ' + (med - custo >= 0 ? 'fx-good' : 'fx-badv'));
-    if (nReal) { tt(brl0(totReal), 'n'); const dv = totReal - totPrevReal; tt((dv > 0 ? '+' : '') + brl0(dv), 'n ' + (dv <= 0 ? 'fx-good' : 'fx-badv')); tt(brl0(totMedReal - totReal), 'n ' + (totMedReal - totReal >= 0 ? 'fx-good' : 'fx-badv')); }
-    else { tt('—', 'n'); tt('—', 'n'); tt('—', 'n'); }
+    if (nReal) { tt(brl0(totReal), 'n'); const dv = totReal - totPrevReal; tt((dv > 0 ? '+' : '') + brl0(dv), 'n ' + (dv <= 0 ? 'fx-good' : 'fx-badv')); tt(brl0(totMedReal - totReal), 'n ' + (totMedReal - totReal >= 0 ? 'fx-good' : 'fx-badv')); tt(totKmReal ? brl2(totReal / totKmReal) : '—', 'n'); }
+    else { tt('—', 'n'); tt('—', 'n'); tt('—', 'n'); tt('—', 'n'); }
     tb.appendChild(tr);
     return { nReal, totReal, totPrevReal };
   }
@@ -618,7 +619,22 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
         c.appendChild(inp);
       }
       const cc = td(tr, brl0(o.custo), 'n'); cc.style.fontWeight = '600';
-      td(tr, o.km ? f1(o.km) : '—', 'n');
+      const ck0 = td(tr, '', 'n');
+      if (o.nome === MOB || o.nome === DESMOB) ck0.textContent = '—';
+      else {
+        const inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.step = '0.1'; inp.inputMode = 'decimal';
+        inp.placeholder = f1(o.kmPlan); inp.setAttribute('aria-label', `km · ${o.nome}`);
+        inp.title = `Previsto: ${f1(o.kmPlan)} km`;
+        inp.style.cssText = `width:5.2rem;box-sizing:border-box;padding:2px 6px;border:1px solid ${o.kmReal ? 'var(--cds-chart-reference)' : 'var(--color-border-line)'};border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg);font:inherit;text-align:right;font-weight:${o.kmReal ? 600 : 400}`;
+        if (o.kmReal) inp.value = o.km;
+        inp.addEventListener('change', () => {
+          aj[o.nome] = aj[o.nome] || {};
+          if (inp.value === '') delete aj[o.nome].km;
+          else { const nv = Number(inp.value); if (!Number.isFinite(nv) || nv < 0) { inp.setAttribute('aria-invalid', 'true'); inp.style.borderColor = 'var(--color-bad)'; return; } aj[o.nome].km = nv; }
+          saveAj(); setTimeout(() => dash.setParams({}), 0);
+        });
+        ck0.appendChild(inp);
+      }
       const ck = td(tr, o.km ? brl2(o.custo / o.km) : '—', 'n'); ck.style.fontWeight = '600';
       tr.title = `Pessoal ${brl0(o.pessoal)} · Hotel ${brl0(o.hotel)} (${f0(o.noites || 0)} noites) · Locação ${brl0(o.locacao)} · Combustível ${brl0(o.combustivel)} (${f0(o.diasOp || 0)} dias em operação)${o.outros ? ' · Outros ' + brl0(o.outros) : ''}`;
       tb.appendChild(tr);
@@ -645,7 +661,9 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     const ultimo = linhas[linhas.length - 2];
     const dif = d3.sum(linhas, (o) => o.custo) - s.total;
     const av = document.getElementById('cc-aj-aviso'); av.hidden = !nAj;
-    if (nAj) { av.textContent = `Com os períodos e recursos definidos por ciclo, o custo previsto soma ${brl0(d3.sum(linhas, (o) => o.custo))}, ${brl0(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'} da simulação geral (${brl0(s.total)}). Último dia de campo: ${dmy(ultimo.fim)}` + (ultimo.fim > prazo ? `, depois do prazo de ${dmy(prazo)}.` : `, dentro do prazo de ${dmy(prazo)}.`); av.className = 'fx-note' + (ultimo.fim > prazo ? ' fx-badv' : ''); }
+    if (nAj) { av.textContent = (Math.abs(dif) >= 1 ? `Com os períodos e recursos definidos por ciclo, o custo previsto soma ${brl0(d3.sum(linhas, (o) => o.custo))}, ${brl0(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'} da simulação geral (${brl0(s.total)}). ` : '') + `Último dia de campo: ${dmy(ultimo.fim)}` + (ultimo.fim > prazo ? `, depois do prazo de ${dmy(prazo)}.` : `, dentro do prazo de ${dmy(prazo)}.`); av.className = 'fx-note' + (ultimo.fim > prazo ? ' fx-badv' : ''); }
+    const kmTot = d3.sum(linhas, (o) => o.km), nKm = linhas.filter((o) => o.kmReal).length;
+    if (nKm && Math.abs(kmTot - C.KM_TOTAL) > 0.05) { av.hidden = false; av.textContent += ` A soma dos km dos ciclos dá ${f1(kmTot)} km, ${f1(Math.abs(kmTot - C.KM_TOTAL))} km ${kmTot > C.KM_TOTAL ? 'acima' : 'abaixo'} dos ${f1(C.KM_TOTAL)} km contratados; ajuste os ciclos seguintes se a diferença for ficar para eles.`; }
     drawTake(linhas, rr);
     drawChart(document.getElementById('cc-chart'), linhas);
     if (foco) { const el = document.querySelector(`#custo-ciclo input[aria-label="${CSS.escape(foco)}"]`); if (el) el.focus(); }
