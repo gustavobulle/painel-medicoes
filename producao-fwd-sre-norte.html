@@ -333,6 +333,36 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     </div>
   </section>
 
+  <section class="fx-card" id="custo-ciclo">
+    <h2>Custo por ciclo</h2>
+    <p class="fx-take" id="cc-take">—</p>
+    <p class="fx-note">Custo previsto de cada ciclo com as premissas da simulação acima, comparado à medição do ciclo (percentual do cronograma REV03 × R$ 347.656,19). Cada dia corrido entra no ciclo do próximo dia de campo, então fins de semana e o recesso pertencem ao ciclo em que caem. A mobilização (13/10) aparece separada, com sua medição de 5,75%.</p>
+    <div class="fx-legend" id="cc-leg"></div>
+    <div class="fx-chart" id="cc-chart" style="min-height:240px"></div>
+    <p class="fx-note">Informe o custo realizado de cada ciclo encerrado para comparar com o previsto. Os valores ficam salvos neste navegador.</p>
+    <div class="fx-tablebox" style="max-height:none">
+      <table id="tab-custo-ciclo">
+        <thead><tr>
+          <th><button type="button" tabindex="-1">Ciclo</button></th>
+          <th><button type="button" tabindex="-1">Período</button></th>
+          <th class="n"><button type="button" tabindex="-1">Dias campo</button></th>
+          <th class="n"><button type="button" tabindex="-1">km</button></th>
+          <th class="n"><button type="button" tabindex="-1">Custo prev.</button></th>
+          <th class="n"><button type="button" tabindex="-1">Custo/km</button></th>
+          <th class="n"><button type="button" tabindex="-1">Medição</button></th>
+          <th class="n"><button type="button" tabindex="-1">Saldo prev.</button></th>
+          <th class="n"><button type="button" tabindex="-1">Margem</button></th>
+          <th class="n"><button type="button" tabindex="-1">Custo real (R$)</button></th>
+          <th class="n"><button type="button" tabindex="-1">Real − prev.</button></th>
+          <th class="n"><button type="button" tabindex="-1">Saldo real</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <button type="button" class="fx-btn" id="cc-limpar">Limpar custos realizados</button>
+  </section>
+
+
   <section class="fx-card" id="programacao">
     <div class="fx-tools">
       <h2>Rota programada dia a dia</h2>
@@ -750,6 +780,171 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     drawSplit(document.getElementById('c-composicao'), s);
     drawCenarios(p);
     drawChart(document.getElementById('chart-custo'), s);
+  });
+})();
+</script>
+<script>
+(() => {
+  // Custo por ciclo: distribui o custo diário da simulação entre mobilização e ciclos e compara com a medição de cada um
+  const { C, D, iso, simular, ri, rf } = window.fxSim;
+  const loc = d3.formatLocale({ decimal: ',', thousands: '.', grouping: [3], currency: ['R$ ', ''] });
+  const brl0 = loc.format('$,.0f'), brl2 = loc.format('$,.2f'), f0 = loc.format(',.0f'), f1 = loc.format(',.1f'), fp = loc.format('.1%');
+  const brlAxis = (v) => Math.abs(v) >= 1000 ? `R$ ${loc.format(',.0f')(v / 1000)} mil` : brl0(v);
+  const dmy = (d) => iso(d).split('-').reverse().join('/');
+  const dm = (d) => dmy(d).slice(0, 5), dmya = (d) => dmy(d).slice(0, 6) + dmy(d).slice(8);
+  const per = (a, b) => iso(a) === iso(b) ? dmya(a) : `${dm(a)} a ${dmya(b)}`;
+  const num = (v, def) => { const n = Number(v); return Number.isFinite(n) ? n : def; };
+  const KEY = 'fwd-sre-norte-custo-realizado';
+  let real = {};
+  try { const o = JSON.parse(localStorage.getItem(KEY) || 'null'); if (o && typeof o === 'object') real = o; } catch (e) {}
+  const saveReal = () => { try { localStorage.setItem(KEY, JSON.stringify(real)); } catch (e) {} };
+  const COMP = [['pessoal', 'Pessoal'], ['hotel', 'Hotel'], ['locacao', 'Locação'], ['combustivel', 'Combustível']];
+  const MOB = 'Mobilização';
+
+  function porCiclo(s, p) {
+    const cmes = num(p.salario, 0) * (1 + num(p.encargos_pct, 0) / 100);
+    const col = num(p.colaboradores, 0), vei = num(p.veiculos, 0);
+    const pDia = col * cmes / C.DIAS_MES, lDia = vei * num(p.locacao, 0) / C.DIAS_MES, cDia = vei * num(p.combustivel, 0) / C.DIAS_MES, hDia = col * num(p.diaria_hotel, 0);
+    const nomes = [MOB, ...C.CICLOS.map((c) => c[0])];
+    const out = new Map(nomes.map((n) => [n, { nome: n, pessoal: 0, hotel: 0, locacao: 0, combustivel: 0, km: 0, diasCampo: 0, diasCorr: 0, ini: null, fim: null, medicao: n === MOB ? C.MOBILIZACAO_PCT * C.VALOR_RECEBER : (C.CICLOS.find((c) => c[0] === n) || [, 0])[1] * C.VALOR_RECEBER }]));
+    const campo = s.dias; let k = 0;
+    for (let x = s.ini; x <= s.fim; x = new Date(x.getTime() + 864e5)) {
+      const rec = x >= ri && x <= rf;
+      while (k < campo.length && campo[k].date < x) k++;
+      const nome = iso(x) === iso(s.ini) ? MOB : (k < campo.length ? campo[k].ciclo : campo[campo.length - 1].ciclo);
+      const o = out.get(nome);
+      o.diasCorr++; o.pessoal += pDia; o.locacao += lDia;
+      if (!rec) o.combustivel += cDia;
+      if (x < s.termino && !rec) o.hotel += hDia;
+      if (!o.ini) o.ini = x; o.fim = x;
+      if (k < campo.length && iso(campo[k].date) === iso(x)) { o.km += campo[k].km; o.diasCampo++; }
+    }
+    return nomes.map((n) => { const o = out.get(n); o.custo = o.pessoal + o.hotel + o.locacao + o.combustivel; o.saldo = o.medicao - o.custo; return o; }).filter((o) => o.diasCorr > 0 || o.medicao > 0);
+  }
+
+  const textW = (svg, t) => { const e = svg.append('text').attr('font-size', 12).text(t); const w = e.node().getComputedTextLength(); e.remove(); return w; };
+  const corComp = (i) => dash.colors[i];
+
+  function drawLegend() {
+    const leg = document.getElementById('cc-leg'); leg.replaceChildren();
+    COMP.forEach(([, n], i) => { const sp = document.createElement('span'); const sw = document.createElement('i'); sw.className = 'fx-sw'; sw.style.background = corComp(i); sp.append(sw, document.createTextNode(n)); leg.appendChild(sp); });
+    const sp = document.createElement('span'); const sw = document.createElement('i'); sw.style.cssText = 'display:inline-block;width:3px;height:14px;background:var(--color-fg)'; sp.append(sw, document.createTextNode('Medição do ciclo')); leg.appendChild(sp);
+    const sp2 = document.createElement('span'); const sw2 = document.createElement('i'); sw2.style.cssText = 'display:inline-block;width:14px;height:4px;background:var(--cds-chart-muted)'; sp2.append(sw2, document.createTextNode('Custo realizado (quando informado)')); leg.appendChild(sp2);
+  }
+
+  function drawChart(el, linhas) {
+    el.innerHTML = '';
+    const rowH = 40, top = 8, H = top + linhas.length * rowH + 26, W = Math.max(300, el.clientWidth);
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Custo previsto por ciclo comparado à medição de cada ciclo');
+    const left = Math.ceil(d3.max(linhas, (o) => textW(svg, o.nome))) + 12;
+    const labs = linhas.map((o) => `saldo previsto ${brlAxis(o.saldo)}`);
+    const right = Math.ceil(d3.max(labs, (t) => textW(svg, t))) + 16;
+    const xmax = d3.max(linhas, (o) => Math.max(o.custo, o.medicao, num(real[o.nome], 0))) || 1;
+    const x = d3.scaleLinear([0, xmax], [left, W - right]).nice();
+    const ticks = x.ticks(Math.max(2, Math.floor((W - left - right) / 90)));
+    const yBase = H - 22;
+    svg.append('g').selectAll('line').data(ticks).join('line').attr('x1', (v) => x(v)).attr('x2', (v) => x(v)).attr('y1', top).attr('y2', yBase).attr('stroke', 'var(--cds-chart-grid)');
+    svg.append('g').selectAll('text').data(ticks).join('text').attr('x', (v) => x(v)).attr('y', H - 6).attr('text-anchor', 'middle').attr('font-size', 12).attr('fill', 'var(--color-fg-muted)').text(brlAxis);
+    let t = el.querySelector('.fx-tip'); if (!t) { t = document.createElement('div'); t.className = 'fx-tip'; t.hidden = true; el.appendChild(t); }
+    const line = (a, b) => { const d = document.createElement('div'); d.className = a; d.textContent = b; t.appendChild(d); };
+    linhas.forEach((o, i) => {
+      const y0 = top + i * rowH, bh = 18, by = y0 + 6;
+      const g = svg.append('g');
+      g.append('text').attr('x', left - 10).attr('y', by + bh / 2).attr('dy', '0.32em').attr('text-anchor', 'end').attr('font-size', 12).attr('font-weight', 600).attr('fill', 'var(--color-fg)').text(o.nome);
+      let acc = 0;
+      COMP.forEach(([k], j) => { const v = o[k]; if (v <= 0) return; g.append('rect').attr('x', x(acc)).attr('y', by).attr('width', Math.max(0, x(acc + v) - x(acc) - (acc + v < o.custo ? 1 : 0))).attr('height', bh).attr('fill', corComp(j)); acc += v; });
+      const r = num(real[o.nome], NaN);
+      if (Number.isFinite(r) && r > 0) g.append('rect').attr('x', x(0)).attr('y', by + bh + 3).attr('width', Math.max(0, x(r) - x(0))).attr('height', 5).attr('rx', 2).attr('fill', 'var(--cds-chart-muted)');
+      const mx = x(o.medicao);
+      g.append('line').attr('x1', mx).attr('x2', mx).attr('y1', by - 4).attr('y2', by + bh + 4).attr('stroke', 'var(--color-fg)').attr('stroke-width', 3);
+      g.append('text').attr('x', Math.max(mx, x(o.custo)) + 8).attr('y', by + bh / 2).attr('dy', '0.32em').attr('font-size', 12).attr('font-weight', 600).attr('fill', o.saldo >= 0 ? 'var(--color-ok)' : 'var(--color-bad)').text(labs[i]);
+      g.append('rect').attr('x', 0).attr('y', y0).attr('width', W).attr('height', rowH).attr('fill', 'transparent')
+        .on('mousemove', (ev) => {
+          t.replaceChildren();
+          line('t', `${o.nome} · ${dmy(o.ini)} a ${dmy(o.fim)}`);
+          COMP.forEach(([k, n]) => line('', `${n}: ${brl0(o[k])}`));
+          line('v', `Custo previsto: ${brl0(o.custo)}`);
+          line('', `Medição: ${brl0(o.medicao)}`);
+          if (Number.isFinite(r) && r > 0) line('', `Custo realizado: ${brl0(r)}`);
+          const [qx, qy] = d3.pointer(ev, el); t.hidden = false;
+          let lf = qx + 12; if (lf + t.offsetWidth > el.clientWidth) lf = Math.max(0, qx - t.offsetWidth - 12);
+          let tp = qy - t.offsetHeight - 8; if (tp < 0) tp = qy + 12;
+          t.style.left = lf + 'px'; t.style.top = tp + 'px';
+        })
+        .on('mouseleave', () => { t.hidden = true; });
+    });
+    svg.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', top).attr('y2', yBase).attr('stroke', 'var(--cds-chart-axis)');
+  }
+
+  function drawTable(linhas) {
+    const tb = document.querySelector('#tab-custo-ciclo tbody'); tb.replaceChildren();
+    const td = (tr, txt, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = txt; tr.appendChild(c); return c; };
+    let totReal = 0, nReal = 0, totPrevReal = 0, totMedReal = 0;
+    for (const o of linhas) {
+      const tr = document.createElement('tr');
+      td(tr, o.nome).style.fontWeight = '600';
+      td(tr, o.ini ? per(o.ini, o.fim) : '—').style.whiteSpace = 'nowrap';
+      td(tr, o.nome === MOB ? '—' : f0(o.diasCampo), 'n');
+      td(tr, o.km ? f1(o.km) : '—', 'n');
+      td(tr, brl0(o.custo), 'n');
+      td(tr, o.km ? brl2(o.custo / o.km) : '—', 'n');
+      td(tr, brl0(o.medicao), 'n');
+      td(tr, brl0(o.saldo), 'n ' + (o.saldo >= 0 ? 'fx-good' : 'fx-badv'));
+      td(tr, o.medicao ? fp(o.saldo / o.medicao) : '—', 'n ' + (o.saldo >= 0 ? 'fx-good' : 'fx-badv'));
+      const ci = td(tr, '', 'n');
+      const inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.step = '100'; inp.inputMode = 'decimal'; inp.placeholder = '—';
+      inp.setAttribute('aria-label', `Custo realizado ${o.nome} (R$)`);
+      inp.style.cssText = 'width:7.5rem;box-sizing:border-box;padding:2px 6px;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg);font:inherit;text-align:right';
+      const r = num(real[o.nome], NaN); if (Number.isFinite(r)) inp.value = r;
+      inp.addEventListener('change', () => {
+        if (inp.value === '') { delete real[o.nome]; saveReal(); dash.setParams({}); return; }
+        const v = Number(inp.value);
+        if (!Number.isFinite(v) || v < 0) { inp.setAttribute('aria-invalid', 'true'); inp.style.borderColor = 'var(--color-bad)'; return; }
+        real[o.nome] = v; saveReal(); dash.setParams({});
+      });
+      ci.appendChild(inp);
+      if (Number.isFinite(r)) {
+        const dv = r - o.custo; td(tr, (dv > 0 ? '+' : '') + brl0(dv), 'n ' + (dv <= 0 ? 'fx-good' : 'fx-badv'));
+        const sr = o.medicao - r; td(tr, brl0(sr), 'n ' + (sr >= 0 ? 'fx-good' : 'fx-badv'));
+        totReal += r; nReal++; totPrevReal += o.custo; totMedReal += o.medicao;
+      } else { td(tr, '—', 'n'); td(tr, '—', 'n'); }
+      tb.appendChild(tr);
+    }
+    const tot = (k) => d3.sum(linhas, (o) => o[k]);
+    const tr = document.createElement('tr');
+    const tt = (txt, cls) => { const c = td(tr, txt, cls); c.style.fontWeight = '600'; return c; };
+    const custo = tot('custo'), med = tot('medicao'), km = tot('km');
+    tt('Total'); tt(per(linhas[0].ini, linhas[linhas.length - 1].fim)).style.whiteSpace = 'nowrap'; tt(f0(tot('diasCampo')), 'n'); tt(f1(km), 'n'); tt(brl0(custo), 'n'); tt(brl2(custo / km), 'n'); tt(brl0(med), 'n');
+    tt(brl0(med - custo), 'n ' + (med - custo >= 0 ? 'fx-good' : 'fx-badv')); tt(fp((med - custo) / med), 'n ' + (med - custo >= 0 ? 'fx-good' : 'fx-badv'));
+    if (nReal) { tt(brl0(totReal), 'n'); const dv = totReal - totPrevReal; tt((dv > 0 ? '+' : '') + brl0(dv), 'n ' + (dv <= 0 ? 'fx-good' : 'fx-badv')); tt(brl0(totMedReal - totReal), 'n ' + (totMedReal - totReal >= 0 ? 'fx-good' : 'fx-badv')); }
+    else { tt('—', 'n'); tt('—', 'n'); tt('—', 'n'); }
+    tb.appendChild(tr);
+    return { nReal, totReal, totPrevReal };
+  }
+
+  function drawTake(linhas, rr) {
+    const el = document.getElementById('cc-take'); el.replaceChildren();
+    const b = (txt) => { const x = document.createElement('b'); x.textContent = txt; return x; };
+    const ciclos = linhas.filter((o) => o.nome !== MOB);
+    const pior = ciclos.reduce((a, o) => (o.saldo / o.medicao < a.saldo / a.medicao ? o : a), ciclos[0]);
+    const neg = ciclos.filter((o) => o.saldo < 0);
+    if (neg.length) el.append(b(neg.map((o) => o.nome).join(' e ')), document.createTextNode(` ${neg.length > 1 ? 'custam' : 'custa'} mais do que ${neg.length > 1 ? 'medem' : 'mede'}: ${pior.nome} fecha com saldo de `), b(brl0(pior.saldo)), document.createTextNode(` (${fp(pior.saldo / pior.medicao)} da medição).`));
+    else el.append(document.createTextNode('Todos os ciclos ficam com saldo positivo; o de menor margem é o '), b(pior.nome), document.createTextNode(`, com ${fp(pior.saldo / pior.medicao)} da medição (${brl0(pior.saldo)}).`));
+    if (pior.diasCorr > pior.diasCampo * 1.6 && pior.nome !== MOB) el.append(document.createTextNode(` Ele tem ${f0(pior.diasCorr)} dias corridos para ${f0(pior.diasCampo)} de campo, e pessoal e locação correm todos os dias.`));
+    if (rr.nReal) { const dv = rr.totReal - rr.totPrevReal; el.append(document.createTextNode(` Nos ciclos com custo realizado, o gasto ficou `), b(`${brl0(Math.abs(dv))} ${dv > 0 ? 'acima' : 'abaixo'}`), document.createTextNode(' do previsto.')); }
+  }
+
+  document.getElementById('cc-limpar').addEventListener('click', () => { real = {}; saveReal(); dash.setParams({}); });
+  drawLegend();
+  dash.onData(() => {
+    const p = { ...dash.params() }; p.km_dia = Number(p.km_dia);
+    if (!(p.km_dia >= 10)) return;
+    const s = simular(p.km_dia, p);
+    const linhas = porCiclo(s, p);
+    const rr = drawTable(linhas);
+    drawTake(linhas, rr);
+    drawChart(document.getElementById('cc-chart'), linhas);
+    window.__ccCheck = { soma: d3.sum(linhas, (o) => o.custo), total: s.total, linhas };
   });
 })();
 </script>
