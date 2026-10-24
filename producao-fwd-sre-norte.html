@@ -334,11 +334,28 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
   </section>
 
   <section class="fx-card" id="custo-ciclo">
+    <style>:root { --cc-outros: #7b5ea7; } :root[data-theme="dark"] { --cc-outros: #b9a0dc; } @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cc-outros: #b9a0dc; } }</style>
     <h2>Custo por ciclo</h2>
     <p class="fx-take" id="cc-take">—</p>
-    <p class="fx-note">Custo previsto de cada ciclo com as premissas da simulação acima, comparado à medição do ciclo (percentual do cronograma REV03 × R$ 347.656,19). Cada dia corrido entra no ciclo do próximo dia de campo, então fins de semana e o recesso pertencem ao ciclo em que caem. A mobilização (13/10) aparece separada, com sua medição de 5,75%.</p>
+    <p class="fx-note">Custo previsto de cada ciclo com as premissas da simulação acima e os ajustes por ciclo informados abaixo, comparado à medição do ciclo (percentual do cronograma REV03 × R$ 347.656,19). Cada dia corrido entra no ciclo do próximo dia de campo, então fins de semana e o recesso pertencem ao ciclo em que caem. A mobilização (13/10) aparece separada, com sua medição de 5,75%.</p>
     <div class="fx-legend" id="cc-leg"></div>
     <div class="fx-chart" id="cc-chart" style="min-height:240px"></div>
+    <h3 style="margin:8px 0 0;font-size:var(--cds-font-size-body);font-weight:600">Ajustes por ciclo</h3>
+    <p class="fx-note">Se um ciclo tiver hotel mais caro, mais combustível ou outra despesa (pedágio, manutenção, alimentação), informe aqui. Campo vazio usa a premissa geral, que aparece em cinza. Combustível é o gasto mensal por veículo, contado nos dias em operação do ciclo.</p>
+    <div class="fx-tablebox" style="max-height:none">
+      <table id="tab-ajustes">
+        <thead><tr>
+          <th><button type="button" tabindex="-1">Ciclo</button></th>
+          <th class="n"><button type="button" tabindex="-1">Diária hotel/pessoa (R$)</button></th>
+          <th class="n"><button type="button" tabindex="-1">Combustível/mês/veículo (R$)</button></th>
+          <th class="n"><button type="button" tabindex="-1">Outros custos (R$)</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <button type="button" class="fx-btn" id="cc-aj-limpar">Voltar às premissas gerais</button>
+    <p class="fx-note" id="cc-aj-aviso" hidden></p>
+    
     <p class="fx-note">Informe o custo realizado de cada ciclo encerrado para comparar com o previsto. Os valores ficam salvos neste navegador.</p>
     <div class="fx-tablebox" style="max-height:none">
       <table id="tab-custo-ciclo">
@@ -798,15 +815,23 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
   let real = {};
   try { const o = JSON.parse(localStorage.getItem(KEY) || 'null'); if (o && typeof o === 'object') real = o; } catch (e) {}
   const saveReal = () => { try { localStorage.setItem(KEY, JSON.stringify(real)); } catch (e) {} };
-  const COMP = [['pessoal', 'Pessoal'], ['hotel', 'Hotel'], ['locacao', 'Locação'], ['combustivel', 'Combustível']];
+  const KEY_AJ = 'fwd-sre-norte-ajustes-ciclo';
+  let aj = {};
+  try { const o = JSON.parse(localStorage.getItem(KEY_AJ) || 'null'); if (o && typeof o === 'object') aj = o; } catch (e) {}
+  const saveAj = () => { try { localStorage.setItem(KEY_AJ, JSON.stringify(aj)); } catch (e) {} };
+  const AJ = [['diaria_hotel', 'Diária de hotel por pessoa (R$)', 10], ['combustivel', 'Combustível mensal por veículo (R$)', 100], ['outros', 'Outros custos do ciclo (R$)', 100]];
+  const ajv = (nome, k) => { const v = aj[nome] && aj[nome][k]; return v === undefined || v === null || v === '' ? NaN : Number(v); };
+  const COMP = [['pessoal', 'Pessoal'], ['hotel', 'Hotel'], ['locacao', 'Locação'], ['combustivel', 'Combustível'], ['outros', 'Outros']];
   const MOB = 'Mobilização';
 
   function porCiclo(s, p) {
     const cmes = num(p.salario, 0) * (1 + num(p.encargos_pct, 0) / 100);
     const col = num(p.colaboradores, 0), vei = num(p.veiculos, 0);
-    const pDia = col * cmes / C.DIAS_MES, lDia = vei * num(p.locacao, 0) / C.DIAS_MES, cDia = vei * num(p.combustivel, 0) / C.DIAS_MES, hDia = col * num(p.diaria_hotel, 0);
+    const pDia = col * cmes / C.DIAS_MES, lDia = vei * num(p.locacao, 0) / C.DIAS_MES;
+    const cDiaDe = (n) => vei * (Number.isFinite(ajv(n, 'combustivel')) ? ajv(n, 'combustivel') : num(p.combustivel, 0)) / C.DIAS_MES;
+    const hDiaDe = (n) => col * (Number.isFinite(ajv(n, 'diaria_hotel')) ? ajv(n, 'diaria_hotel') : num(p.diaria_hotel, 0));
     const nomes = [MOB, ...C.CICLOS.map((c) => c[0])];
-    const out = new Map(nomes.map((n) => [n, { nome: n, pessoal: 0, hotel: 0, locacao: 0, combustivel: 0, km: 0, diasCampo: 0, diasCorr: 0, ini: null, fim: null, medicao: n === MOB ? C.MOBILIZACAO_PCT * C.VALOR_RECEBER : (C.CICLOS.find((c) => c[0] === n) || [, 0])[1] * C.VALOR_RECEBER }]));
+    const out = new Map(nomes.map((n) => [n, { nome: n, pessoal: 0, hotel: 0, locacao: 0, combustivel: 0, outros: Number.isFinite(ajv(n, 'outros')) ? ajv(n, 'outros') : 0, km: 0, diasCampo: 0, diasCorr: 0, ini: null, fim: null, medicao: n === MOB ? C.MOBILIZACAO_PCT * C.VALOR_RECEBER : (C.CICLOS.find((c) => c[0] === n) || [, 0])[1] * C.VALOR_RECEBER }]));
     const campo = s.dias; let k = 0;
     for (let x = s.ini; x <= s.fim; x = new Date(x.getTime() + 864e5)) {
       const rec = x >= ri && x <= rf;
@@ -814,16 +839,16 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
       const nome = iso(x) === iso(s.ini) ? MOB : (k < campo.length ? campo[k].ciclo : campo[campo.length - 1].ciclo);
       const o = out.get(nome);
       o.diasCorr++; o.pessoal += pDia; o.locacao += lDia;
-      if (!rec) o.combustivel += cDia;
-      if (x < s.termino && !rec) o.hotel += hDia;
+      if (!rec) o.combustivel += cDiaDe(nome);
+      if (x < s.termino && !rec) o.hotel += hDiaDe(nome);
       if (!o.ini) o.ini = x; o.fim = x;
       if (k < campo.length && iso(campo[k].date) === iso(x)) { o.km += campo[k].km; o.diasCampo++; }
     }
-    return nomes.map((n) => { const o = out.get(n); o.custo = o.pessoal + o.hotel + o.locacao + o.combustivel; o.saldo = o.medicao - o.custo; return o; }).filter((o) => o.diasCorr > 0 || o.medicao > 0);
+    return nomes.map((n) => { const o = out.get(n); o.custo = o.pessoal + o.hotel + o.locacao + o.combustivel + o.outros; o.saldo = o.medicao - o.custo; return o; }).filter((o) => o.diasCorr > 0 || o.medicao > 0);
   }
 
   const textW = (svg, t) => { const e = svg.append('text').attr('font-size', 12).text(t); const w = e.node().getComputedTextLength(); e.remove(); return w; };
-  const corComp = (i) => dash.colors[i];
+  const corComp = (i) => i < 4 ? dash.colors[i] : 'var(--cc-outros)';
 
   function drawLegend() {
     const leg = document.getElementById('cc-leg'); leg.replaceChildren();
@@ -837,11 +862,13 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     const rowH = 40, top = 8, H = top + linhas.length * rowH + 26, W = Math.max(300, el.clientWidth);
     const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Custo previsto por ciclo comparado à medição de cada ciclo');
     const left = Math.ceil(d3.max(linhas, (o) => textW(svg, o.nome))) + 12;
-    const labs = linhas.map((o) => `saldo previsto ${brlAxis(o.saldo)}`);
+    const curto = W < 640;
+    const labs = linhas.map((o) => curto ? `${o.saldo >= 0 ? '+' : '−'}${brlAxis(Math.abs(o.saldo))}` : `saldo previsto ${brlAxis(o.saldo)}`);
     const right = Math.ceil(d3.max(labs, (t) => textW(svg, t))) + 16;
     const xmax = d3.max(linhas, (o) => Math.max(o.custo, o.medicao, num(real[o.nome], 0))) || 1;
     const x = d3.scaleLinear([0, xmax], [left, W - right]).nice();
-    const ticks = x.ticks(Math.max(2, Math.floor((W - left - right) / 90)));
+    let ticks = x.ticks(Math.max(2, Math.floor((W - left - right) / 90)));
+    while (ticks.length > 2 && (x(ticks[1]) - x(ticks[0])) < 72) ticks = ticks.filter((_, i) => i % 2 === 0);
     const yBase = H - 22;
     svg.append('g').selectAll('line').data(ticks).join('line').attr('x1', (v) => x(v)).attr('x2', (v) => x(v)).attr('y1', top).attr('y2', yBase).attr('stroke', 'var(--cds-chart-grid)');
     svg.append('g').selectAll('text').data(ticks).join('text').attr('x', (v) => x(v)).attr('y', H - 6).attr('text-anchor', 'middle').attr('font-size', 12).attr('fill', 'var(--color-fg-muted)').text(brlAxis);
@@ -862,7 +889,7 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
         .on('mousemove', (ev) => {
           t.replaceChildren();
           line('t', `${o.nome} · ${dmy(o.ini)} a ${dmy(o.fim)}`);
-          COMP.forEach(([k, n]) => line('', `${n}: ${brl0(o[k])}`));
+          COMP.forEach(([k, n]) => { if (k !== 'outros' || o[k]) line('', `${n}: ${brl0(o[k])}`); });
           line('v', `Custo previsto: ${brl0(o.custo)}`);
           line('', `Medição: ${brl0(o.medicao)}`);
           if (Number.isFinite(r) && r > 0) line('', `Custo realizado: ${brl0(r)}`);
@@ -934,6 +961,30 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     if (rr.nReal) { const dv = rr.totReal - rr.totPrevReal; el.append(document.createTextNode(` Nos ciclos com custo realizado, o gasto ficou `), b(`${brl0(Math.abs(dv))} ${dv > 0 ? 'acima' : 'abaixo'}`), document.createTextNode(' do previsto.')); }
   }
 
+  function drawAjustes(linhas, p) {
+    const tb = document.querySelector('#tab-ajustes tbody'); tb.replaceChildren();
+    for (const o of linhas) {
+      const tr = document.createElement('tr');
+      const c0 = document.createElement('td'); c0.textContent = o.nome; c0.style.fontWeight = '600'; tr.appendChild(c0);
+      for (const [k, lab, step] of AJ) {
+        const td = document.createElement('td'); td.className = 'n';
+        const inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.step = String(step); inp.inputMode = 'decimal';
+        inp.placeholder = k === 'outros' ? '0' : loc.format(',.0f')(num(p[k], 0));
+        inp.setAttribute('aria-label', `${lab} · ${o.nome}`);
+        inp.style.cssText = 'width:8.5rem;box-sizing:border-box;padding:2px 6px;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg);font:inherit;text-align:right';
+        const v = ajv(o.nome, k); if (Number.isFinite(v)) { inp.value = v; inp.style.borderColor = 'var(--cds-chart-reference)'; inp.style.fontWeight = '600'; }
+        inp.addEventListener('change', () => {
+          aj[o.nome] = aj[o.nome] || {};
+          if (inp.value === '') delete aj[o.nome][k];
+          else { const nv = Number(inp.value); if (!Number.isFinite(nv) || nv < 0) { inp.setAttribute('aria-invalid', 'true'); inp.style.borderColor = 'var(--color-bad)'; return; } aj[o.nome][k] = nv; }
+          saveAj(); dash.setParams({});
+        });
+        td.appendChild(inp); tr.appendChild(td);
+      }
+      tb.appendChild(tr);
+    }
+  }
+  document.getElementById('cc-aj-limpar').addEventListener('click', () => { aj = {}; saveAj(); dash.setParams({}); });
   document.getElementById('cc-limpar').addEventListener('click', () => { real = {}; saveReal(); dash.setParams({}); });
   drawLegend();
   dash.onData(() => {
@@ -941,7 +992,12 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     if (!(p.km_dia >= 10)) return;
     const s = simular(p.km_dia, p);
     const linhas = porCiclo(s, p);
+    drawAjustes(linhas, p);
     const rr = drawTable(linhas);
+    const nAj = Object.values(aj).reduce((a, x) => a + Object.keys(x || {}).length, 0);
+    const dif = d3.sum(linhas, (o) => o.custo) - s.total;
+    const av = document.getElementById('cc-aj-aviso'); av.hidden = !nAj;
+    if (nAj) av.textContent = `Com os ajustes por ciclo, o custo previsto soma ${brl0(d3.sum(linhas, (o) => o.custo))}, ${brl0(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'} da simulação geral (${brl0(s.total)}).`;
     drawTake(linhas, rr);
     drawChart(document.getElementById('cc-chart'), linhas);
     window.__ccCheck = { soma: d3.sum(linhas, (o) => o.custo), total: s.total, linhas };

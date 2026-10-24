@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Custo por ciclo · FWD SRE Norte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>:root {
+  --navy: #00233b; --sage: #bfcf99; --cream: #efebdc;
+  --bg: #f7f6f1; --panel: #ffffff; --ink: #00233b; --muted: #4f6273; --line: #dfe3d6;
+  --head-bg: #ffffff; --head-ink: #00233b; --accent: #00233b; --accent-ink: #ffffff; --hl: #bfcf99;
+  --plan: #8ea36a; --real: #00233b; --good: #3f7a2a; --bad: #b3361f; --warn: #a06a00; --focus: #4a7fb5;
+  --f-display: "Poppins", Arial, sans-serif;
+  --f-body: "Poppins", Arial, sans-serif;
+  --f-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #071724; --panel: #0d2133; --ink: #efebdc; --muted: #a6b3bf; --line: #1f3a50;
+  --head-bg: #00233b; --head-ink: #efebdc; --accent: #bfcf99; --accent-ink: #00233b; --hl: #bfcf99;
+  --plan: #7f93a6; --real: #bfcf99; --good: #9fd07a; --bad: #f08a72; --warn: #e3b04b; --focus: #8fb8e6; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #071724; --panel: #0d2133; --ink: #efebdc; --muted: #a6b3bf; --line: #1f3a50;
+  --head-bg: #00233b; --head-ink: #efebdc; --accent: #bfcf99; --accent-ink: #00233b; --hl: #bfcf99;
+  --plan: #7f93a6; --real: #bfcf99; --good: #9fd07a; --bad: #f08a72; --warn: #e3b04b; --focus: #8fb8e6; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14.5px; line-height: 1.5; margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.band { background: var(--head-bg); color: var(--head-ink); border-bottom: 1px solid var(--line); }
+.stripes { display: grid; gap: 8px; padding-top: 10px; }
+.stripes div { display: flex; gap: 10px; height: 12px; }
+.stripes span { display: block; height: 100%; }
+.s-n { background: var(--navy); } .s-g { background: var(--sage); } .s-c { background: var(--cream); }
+:root[data-theme="dark"] .s-n { background: #2a4a63; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .s-n { background: #2a4a63; } }
+.brand { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; padding-block: 18px 6px; }
+.brand img { height: 46px; width: auto; display: block; }
+.logo-dark { display: none !important; }
+:root[data-theme="dark"] .logo-light { display: none !important; } :root[data-theme="dark"] .logo-dark { display: block !important; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .logo-light { display: none !important; } :root:not([data-theme="light"]) .logo-dark { display: block !important; } }
+.doccode { font-weight: 600; font-size: 13px; letter-spacing: .02em; text-align: right; }
+.band .wrap.title { padding-block: 8px 20px; display: grid; gap: 4px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.lede { margin: 0; max-width: 78ch; }
+.lede b { font-weight: 600; box-shadow: inset 0 -0.45em 0 color-mix(in srgb, var(--hl) 55%, transparent); }
+main.wrap { padding-block: 22px 32px; display: grid; gap: 22px; }
+.good { color: var(--good) !important; } .bad { color: var(--bad) !important; }
+.note { margin: 0; font-size: 12.5px; color: var(--muted); }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; align-items: start; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.chart { position: relative; min-height: 260px; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--f-body); }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 18px rgba(0,35,59,.16); padding: 6px 9px; font-size: 12px; z-index: 3; max-width: 240px; }
+.tip .t { color: var(--muted); }
+form { display: grid; gap: 12px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 10px 12px; }
+label.f { display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
+label.f.wide { grid-column: 1 / -1; }
+input, select, textarea { font: inherit; font-size: 14.5px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 7px 9px; width: 100%; box-sizing: border-box; font-variant-numeric: tabular-nums; }
+textarea { min-height: 60px; resize: vertical; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, tr:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button { font: inherit; font-size: 13.5px; border-radius: 5px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+.status { font-size: 12.5px; color: var(--muted); }
+.plan-of-day { background: color-mix(in srgb, var(--cream) 45%, var(--panel)); border-left: 4px solid var(--sage); border-radius: 4px; padding: 9px 11px; font-size: 13px; }
+:root[data-theme="dark"] .plan-of-day { background: var(--bg); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .plan-of-day { background: var(--bg); } }
+.plan-of-day b { font-weight: 600; }
+.tablebox { overflow: auto; max-height: 34rem; border: 1px solid var(--line); border-radius: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { position: sticky; top: 0; background: var(--navy); color: #fff; text-align: left; font-weight: 500; padding: 8px 9px; white-space: nowrap; z-index: 1; }
+td { padding: 6px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tbody tr { cursor: pointer; }
+tbody tr:hover td { background: color-mix(in srgb, var(--sage) 18%, transparent); }
+tr.today td { background: color-mix(in srgb, var(--sage) 34%, transparent); }
+tr.future td { color: var(--muted); }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; border: 1px solid currentColor; white-space: nowrap; }
+.chip.ok { color: var(--good); } .chip.warn { color: var(--warn); } .chip.bad { color: var(--bad); } .chip.none { color: var(--muted); }
+.cyc { font-size: 12px; font-weight: 600; }
+.empty { padding: 18px; text-align: center; color: var(--muted); font-size: 13.5px; }
+.notice { border-left: 4px solid var(--sage); background: var(--panel); padding: 10px 14px; border-radius: 4px; font-size: 13.5px; margin: 0; }
+.foot { border-top: 2px solid var(--sage); }
+.foot .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; padding-block: 12px 22px; font-size: 12px; color: var(--muted); }
+.foot address { font-style: normal; text-align: right; }
+.foot b { color: var(--ink); font-weight: 600; }
+@media (prefers-reduced-motion: no-preference) { .kpi .val { transition: color .3s; } }
+
+:root {
+  --font-anthropic-sans: "Poppins", Arial, sans-serif; --font-anthropic-serif: "Poppins", Arial, sans-serif;
+  --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 12px; --cds-gap-lg: 22px;
+  --cds-pad-xs: 5px; --cds-pad-sm: 9px; --cds-pad-md: 12px; --cds-pad-lg: 16px; --cds-radius: 6px;
+  --cds-font-size-title: 26px; --cds-font-size-heading: 16px; --cds-font-size-body: 14.5px; --cds-font-size-caption: 12.5px; --cds-font-weight-medium: 600;
+  --cds-dur-slow: .45s; --cds-ease-out: cubic-bezier(.2,.7,.2,1);
+  --color-bg: var(--bg); --color-panel: var(--panel); --color-fg: var(--ink); --color-fg-muted: var(--muted); --color-border-line: var(--line);
+  --color-ok: var(--good); --color-bad: var(--bad);
+  --cds-surface-popover: var(--panel); --cds-border: var(--line); --cds-shadow-popover: 0 6px 18px rgba(0,35,59,.16); --cds-text-secondary: var(--muted);
+  --cds-chart-grid: var(--line); --cds-chart-muted: #8d9aa6; --cds-chart-reference: #4a7fb5;
+  --c1: #00233b; --c2: #8ea36a; --c3: #4a7fb5; --c4: #b88a2c;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c1: #bfcf99; --c2: #7fb0dd; --c3: #e3b04b; --c4: #d58ca0; --cds-chart-reference: #8fb8e6; --cds-chart-muted: #7f93a6; } }
+:root[data-theme="dark"] { --c1: #bfcf99; --c2: #7fb0dd; --c3: #e3b04b; --c4: #d58ca0; --cds-chart-reference: #8fb8e6; --cds-chart-muted: #7f93a6; }
+main.wrap { padding-block: 22px 32px; }
+.fx-head h1 { font-weight: 600 !important; }
+.fx-kpi { border-top: 4px solid var(--sage) !important; }
+.fx-kpi.edit { border-color: var(--sage) !important; border-top-color: var(--navy) !important; }
+.fx-kpi-value, .fx-kpi-input input { font-weight: 600 !important; }
+.fx-card h2 { text-transform: uppercase; letter-spacing: .02em; display: flex; align-items: center; gap: 10px; }
+.fx-card h2::before { content: ""; width: 13px; height: 13px; background: var(--sage); flex: none; }
+.fx th { background: var(--navy) !important; color: #fff; }
+.fx th button { font-weight: 500 !important; }
+.fx svg text { font-family: "Poppins", Arial, sans-serif; }
+.dash-skeleton { color: transparent; }
+
+
+.fx { display: grid; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); font-variant-numeric: tabular-nums; }
+.fx-head { display: grid; gap: var(--cds-gap-xs); }
+.fx-head h1 { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); text-wrap: balance; }
+.fx-take { margin: 0; color: var(--color-fg-muted); font-size: var(--cds-font-size-body); max-width: 70ch; }
+.fx-take b { font-weight: 600; color: var(--color-fg); }
+.fx-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: var(--cds-gap-md); }
+.fx-kpi { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; gap: var(--cds-gap-xs); align-content: start; }
+.fx-kpi-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.fx-kpi-value { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.1; min-height: 1.1em; }
+.fx-kpi-note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.fx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: var(--cds-gap-md); }
+.fx-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-sm); min-width: 0; align-content: start; }
+.fx-card h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+.fx-note { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.fx-chart { position: relative; min-height: 280px; }
+.fx-chart svg { display: block; overflow: visible; }
+.fx-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.fx-legend span { display: inline-flex; align-items: center; gap: var(--cds-gap-xs); }
+.fx-sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.fx-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); max-width: 260px; z-index: 2; }
+.fx-tip .t { color: var(--cds-text-secondary); }
+.fx-tip .v { font-weight: 600; }
+.fx-fail { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.fx-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+.fx-tablebox { max-height: 30rem; overflow: auto; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); }
+.fx table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); }
+.fx th { position: sticky; top: 0; background: var(--color-panel); text-align: left; padding: 0; border-bottom: 1px solid var(--color-border-line); z-index: 1; }
+.fx th button { all: unset; cursor: pointer; display: block; width: 100%; box-sizing: border-box; padding: var(--cds-pad-xs) var(--cds-pad-sm); font-weight: 600; white-space: nowrap; }
+.fx th button:focus-visible { outline: 2px solid var(--cds-chart-reference); outline-offset: -2px; }
+.fx td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+.fx td.n, .fx th.n button { text-align: right; }
+.fx td.rod { min-width: 14rem; }
+.fx tr.fx-today td { background: color-mix(in srgb, var(--cds-chart-reference) 12%, transparent); }
+.fx-cyc { display: inline-flex; align-items: center; gap: var(--cds-gap-xs); white-space: nowrap; }
+.fx-search { width: 100%; max-width: 22rem; box-sizing: border-box; padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); font: inherit; font-size: var(--cds-font-size-caption); }
+.fx-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--cds-gap-sm); }
+.fx-bar { height: 8px; border-radius: 4px; background: var(--cds-chart-grid); overflow: hidden; min-width: 4rem; }
+.fx-bar > i { display: block; height: 100%; border-radius: 4px; }
+
+.fx-cost { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--cds-gap-md); align-items: start; }
+.fx-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: var(--cds-gap-sm) var(--cds-gap-md); }
+.fx-field { display: grid; gap: 2px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.fx-field input { box-sizing: border-box; width: 100%; padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); font: inherit; font-size: var(--cds-font-size-body); font-variant-numeric: tabular-nums; }
+.fx-field input:focus-visible { outline: 2px solid var(--cds-chart-reference); outline-offset: 1px; }
+.fx-field input[aria-invalid=true] { border-color: var(--color-bad); }
+.fx-btn { justify-self: start; padding: var(--cds-pad-xs) var(--cds-pad-md); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); font: inherit; font-size: var(--cds-font-size-caption); cursor: pointer; }
+.fx-btn:hover { background: var(--color-panel); }
+.fx-btn:focus-visible { outline: 2px solid var(--cds-chart-reference); outline-offset: 1px; }
+.fx-split { display: grid; gap: var(--cds-gap-sm); }
+.fx-split-row { display: grid; grid-template-columns: minmax(7rem, 9rem) 1fr auto; gap: var(--cds-gap-sm); align-items: center; font-size: var(--cds-font-size-caption); }
+.fx-split-row .fx-bar { height: 10px; }
+.fx-split-row .v { font-weight: 600; text-align: right; white-space: nowrap; }
+.fx-split-row .s { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.fx-good { color: var(--color-ok); }
+.fx-badv { color: var(--color-bad); }
+.fx-sub { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: 0; }
+
+.fx tr.fx-sel td { background: color-mix(in srgb, var(--cds-chart-reference) 14%, transparent); font-weight: 600; }
+#tab-cenarios tbody tr { cursor: pointer; }
+#tab-cenarios tbody tr:hover td { background: color-mix(in srgb, var(--cds-chart-reference) 8%, transparent); }
+.fx-pill { display: inline-block; padding: 1px var(--cds-pad-sm); border-radius: 999px; font-size: var(--cds-font-size-caption); white-space: nowrap; border: 1px solid currentColor; }
+[data-dash-source-state=empty] { color: transparent; }
+[data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+@media (prefers-reduced-motion: no-preference) {
+  .fx-anim rect.bar { animation: fx-grow var(--cds-dur-slow) var(--cds-ease-out) both; transform-box: fill-box; transform-origin: bottom; }
+  @keyframes fx-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+}
+
+.fx-kpi-input { display: flex; align-items: baseline; gap: var(--cds-gap-xs); }
+.fx-kpi-input input { width: 5.5ch; box-sizing: content-box; padding: 0 var(--cds-pad-xs); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.fx-kpi-input input:focus-visible { outline: 2px solid var(--cds-chart-reference); outline-offset: 1px; }
+.fx-kpi-input input[aria-invalid=true] { border-color: var(--color-bad); }
+.fx-kpi-input span { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.fx-kpi.edit { border-color: var(--cds-chart-reference); }
+</style>
+</head><body>
+<header class="band">
+  <div class="wrap stripes" aria-hidden="true"><div><span class="s-n" style="flex:1.3"></span><span class="s-n" style="flex:3.8"></span><span class="s-g" style="flex:0.5"></span><span class="s-c" style="flex:1.1"></span><span class="s-n" style="flex:1.2"></span><span class="s-c" style="flex:1.2"></span><span class="s-n" style="flex:1.2"></span><span class="s-g" style="flex:0.5"></span><span class="s-n" style="flex:2.7"></span></div><div><span class="s-c" style="flex:1.3"></span><span class="s-g" style="flex:0.5"></span><span class="s-n" style="flex:1.1"></span><span class="s-n" style="flex:1.1"></span><span class="s-c" style="flex:4.2"></span><span class="s-g" style="flex:0.5"></span><span class="s-n" style="flex:1"></span><span class="s-n" style="flex:1.1"></span><span class="s-c" style="flex:2.5"></span></div></div>
+  <div class="wrap brand">
+    <img class="logo-light" alt="Afirma Evias – engenharia viária" src="data:image/png;base64,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">
+    <img class="logo-dark" alt="Afirma Evias – engenharia viária" src="data:image/png;base64,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">
+    <span class="doccode">PRODUÇÃO E CUSTOS · LEVANTAMENTO FWD</span>
+  </div>
+</header>
+<script>
+// Dados e parâmetros embutidos (versão HTML independente do painel publicado)
+window.dash = (() => {
+  const ROWS = [{"dia": "D1", "data": "2026-10-14", "dia_semana": "qua", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Velho", "rodovias": "PR-90", "saida": "Ibaiti", "pernoite": "Ibaiti", "ensaios": "205", "km": "82.0", "km_acum": "82.0", "deslocamento_km": "183", "jornada_h": "7.3"}, {"dia": "D2", "data": "2026-10-15", "dia_semana": "qui", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Velho", "rodovias": "PR-90", "saida": "Ibaiti", "pernoite": "São Jerônimo da Serra", "ensaios": "205", "km": "82.0", "km_acum": "164.0", "deslocamento_km": "154", "jornada_h": "6.8"}, {"dia": "D3", "data": "2026-10-16", "dia_semana": "sex", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Velho, Vale do Tibagi", "rodovias": "PR-90, PR-435", "saida": "São Jerônimo da Serra", "pernoite": "São Jerônimo da Serra", "ensaios": "205", "km": "82.0", "km_acum": "246.0", "deslocamento_km": "182", "jornada_h": "7.3"}, {"dia": "D4", "data": "2026-10-19", "dia_semana": "seg", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Velho", "rodovias": "PR-435, PRC-272, PR-963, PR-436", "saida": "São Jerônimo da Serra", "pernoite": "Ibaiti", "ensaios": "199", "km": "79.6", "km_acum": "325.6", "deslocamento_km": "148", "jornada_h": "6.6"}, {"dia": "D5", "data": "2026-10-20", "dia_semana": "ter", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Velho", "rodovias": "PRC-272, PR-160", "saida": "Ibaiti", "pernoite": "Ibaiti", "ensaios": "205", "km": "82.0", "km_acum": "407.6", "deslocamento_km": "155", "jornada_h": "6.8"}, {"dia": "D6", "data": "2026-10-21", "dia_semana": "qua", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Velho, Vale do Ivaí", "rodovias": "PR-160, PR-962, PR-340", "saida": "Ibaiti", "pernoite": "Telêmaco Borba", "ensaios": "205", "km": "82.0", "km_acum": "489.6", "deslocamento_km": "180", "jornada_h": "7.3"}, {"dia": "D7", "data": "2026-10-22", "dia_semana": "qui", "ciclo": "Ciclo 1", "escritorio_regional": "Vale do Ivaí, Norte Velho", "rodovias": "PR-340, PR-987, PR-960, PRC-272", "saida": "Telêmaco Borba", "pernoite": "Ibaiti", "ensaios": "158", "km": "63.2", "km_acum": "552.8", "deslocamento_km": "245", "jornada_h": "7.5"}, {"dia": "D8", "data": "2026-10-23", "dia_semana": "sex", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Velho, Norte Pioneiro", "rodovias": "PRC-272, PR-852, PR-218", "saida": "Ibaiti", "pernoite": "Siqueira Campos", "ensaios": "205", "km": "82.0", "km_acum": "634.8", "deslocamento_km": "159", "jornada_h": "6.9"}, {"dia": "D9", "data": "2026-10-26", "dia_semana": "seg", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Pioneiro", "rodovias": "PR-218, PR-151, PR-424", "saida": "Siqueira Campos", "pernoite": "Siqueira Campos", "ensaios": "205", "km": "82.0", "km_acum": "716.8", "deslocamento_km": "150", "jornada_h": "6.8"}, {"dia": "D10", "data": "2026-10-27", "dia_semana": "ter", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Pioneiro, Norte Velho", "rodovias": "PR-424, PR-422, PR-961, PR-218", "saida": "Siqueira Campos", "pernoite": "Siqueira Campos", "ensaios": "205", "km": "82.0", "km_acum": "798.8", "deslocamento_km": "218", "jornada_h": "7.9"}, {"dia": "D11", "data": "2026-10-28", "dia_semana": "qua", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Pioneiro", "rodovias": "PR-218, PR-439, PR-431, PR-151", "saida": "Siqueira Campos", "pernoite": "Jacarezinho", "ensaios": "205", "km": "82.0", "km_acum": "880.8", "deslocamento_km": "186", "jornada_h": "7.4"}, {"dia": "D12", "data": "2026-10-29", "dia_semana": "qui", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Pioneiro", "rodovias": "PR-151, PR-218", "saida": "Jacarezinho", "pernoite": "Jacarezinho", "ensaios": "205", "km": "82.0", "km_acum": "962.8", "deslocamento_km": "185", "jornada_h": "7.3"}, {"dia": "D13", "data": "2026-10-30", "dia_semana": "sex", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Pioneiro", "rodovias": "PR-218", "saida": "Jacarezinho", "pernoite": "Nova Fátima", "ensaios": "190", "km": "76.0", "km_acum": "1038.8", "deslocamento_km": "235", "jornada_h": "7.9"}, {"dia": "D14", "data": "2026-11-03", "dia_semana": "ter", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Velho, Norte Pioneiro", "rodovias": "PR-218, PR-436, PR-439", "saida": "Nova Fátima", "pernoite": "Nova Fátima", "ensaios": "205", "km": "82.0", "km_acum": "1120.8", "deslocamento_km": "128", "jornada_h": "6.4"}, {"dia": "D15", "data": "2026-11-04", "dia_semana": "qua", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Pioneiro", "rodovias": "PR-439, PR-431", "saida": "Nova Fátima", "pernoite": "Jacarezinho", "ensaios": "205", "km": "82.0", "km_acum": "1202.8", "deslocamento_km": "150", "jornada_h": "6.8"}, {"dia": "D16", "data": "2026-11-05", "dia_semana": "qui", "ciclo": "Ciclo 1", "escritorio_regional": "Norte Pioneiro, Norte Velho", "rodovias": "PR-431, PR-517, PR-436, PR-519", "saida": "Jacarezinho", "pernoite": "Bandeirantes", "ensaios": "197", "km": "78.8", "km_acum": "1281.6", "deslocamento_km": "138", "jornada_h": "6.4"}, {"dia": "D17", "data": "2026-11-06", "dia_semana": "sex", "ciclo": "Ciclo 2", "escritorio_regional": "Norte Velho, Norte Pioneiro", "rodovias": "PR-436, PR-518", "saida": "Bandeirantes", "pernoite": "Bandeirantes", "ensaios": "205", "km": "82.0", "km_acum": "1363.6", "deslocamento_km": "136", "jornada_h": "6.5"}, {"dia": "D18", "data": "2026-11-09", "dia_semana": "seg", "ciclo": "Ciclo 2", "escritorio_regional": "Norte Pioneiro, Norte Velho", "rodovias": "PR-518, PR-517, PR-436", "saida": "Bandeirantes", "pernoite": "Bandeirantes", "ensaios": "205", "km": "82.0", "km_acum": "1445.6", "deslocamento_km": "148", "jornada_h": "6.7"}, {"dia": "D19", "data": "2026-11-10", "dia_semana": "ter", "ciclo": "Ciclo 2", "escritorio_regional": "Norte Pioneiro", "rodovias": "PR-436, PR-92", "saida": "Bandeirantes", "pernoite": "Bandeirantes", "ensaios": "205", "km": "82.0", "km_acum": "1527.6", "deslocamento_km": "169", "jornada_h": "7.1"}, {"dia": "D20", "data": "2026-11-11", "dia_semana": "qua", "ciclo": "Ciclo 2", "escritorio_regional": "Norte Pioneiro, Vale do Tibagi", "rodovias": "PR-92, PR-160", "saida": "Bandeirantes", "pernoite": "Cornélio Procópio", "ensaios": "197", "km": "78.8", "km_acum": "1606.4", "deslocamento_km": "200", "jornada_h": "7.4"}, {"dia": "D21", "data": "2026-11-12", "dia_semana": "qui", "ciclo": "Ciclo 2", "escritorio_regional": "Norte Velho", "rodovias": "PR-160", "saida": "Cornélio Procópio", "pernoite": "Nova Fátima", "ensaios": "205", "km": "82.0", "km_acum": "1688.4", "deslocamento_km": "96", "jornada_h": "5.9"}, {"dia": "D22", "data": "2026-11-13", "dia_semana": "sex", "ciclo": "Ciclo 2", "escritorio_regional": "Norte Velho, Vale do Tibagi", "rodovias": "PR-160, PR-435, PR-218, PR-90", "saida": "Nova Fátima", "pernoite": "Nova Fátima", "ensaios": "205", "km": "82.0", "km_acum": "1770.4", "deslocamento_km": "138", "jornada_h": "6.6"}, {"dia": "D23", "data": "2026-11-16", "dia_semana": "seg", "ciclo": "Ciclo 2", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-90, PR-218", "saida": "Nova Fátima", "pernoite": "Londrina", "ensaios": "205", "km": "82.0", "km_acum": "1852.4", "deslocamento_km": "196", "jornada_h": "7.5"}, {"dia": "D24", "data": "2026-11-17", "dia_semana": "ter", "ciclo": "Ciclo 2", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-218, PR-538, PR-532", "saida": "Londrina", "pernoite": "Londrina", "ensaios": "197", "km": "78.8", "km_acum": "1931.2", "deslocamento_km": "148", "jornada_h": "6.6"}, {"dia": "D25", "data": "2026-11-18", "dia_semana": "qua", "ciclo": "Ciclo 2", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-538, PR-980, PR-90", "saida": "Londrina", "pernoite": "Assaí", "ensaios": "200", "km": "80.0", "km_acum": "2011.2", "deslocamento_km": "221", "jornada_h": "7.8"}, {"dia": "D26", "data": "2026-11-19", "dia_semana": "qui", "ciclo": "Ciclo 2", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-90, PR-218, PR-525, PR-526, PR-442", "saida": "Assaí", "pernoite": "Assaí", "ensaios": "205", "km": "82.0", "km_acum": "2093.2", "deslocamento_km": "145", "jornada_h": "6.7"}, {"dia": "D27", "data": "2026-11-23", "dia_semana": "seg", "ciclo": "Ciclo 2", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-442, PR-443, PR-160", "saida": "Assaí", "pernoite": "Assaí", "ensaios": "205", "km": "82.0", "km_acum": "2175.2", "deslocamento_km": "155", "jornada_h": "6.8"}, {"dia": "D28", "data": "2026-11-24", "dia_semana": "ter", "ciclo": "Ciclo 2", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-160, PR-437", "saida": "Assaí", "pernoite": "Primeiro de Maio", "ensaios": "205", "km": "82.0", "km_acum": "2257.2", "deslocamento_km": "150", "jornada_h": "6.8"}, {"dia": "D29", "data": "2026-11-25", "dia_semana": "qua", "ciclo": "Ciclo 2", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-437, PR-445", "saida": "Primeiro de Maio", "pernoite": "Primeiro de Maio", "ensaios": "205", "km": "82.0", "km_acum": "2339.2", "deslocamento_km": "138", "jornada_h": "6.6"}, {"dia": "D30", "data": "2026-11-26", "dia_semana": "qui", "ciclo": "Ciclo 2", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-437, PR-90, PR-445", "saida": "Primeiro de Maio", "pernoite": "Primeiro de Maio", "ensaios": "205", "km": "82.0", "km_acum": "2421.2", "deslocamento_km": "144", "jornada_h": "6.7"}, {"dia": "D31", "data": "2026-11-27", "dia_semana": "sex", "ciclo": "Ciclo 2", "escritorio_regional": "Vale do Tibagi, Vale do Ivaí", "rodovias": "PR-445, PR-545, PR-536, PR-323, PR-170", "saida": "Primeiro de Maio", "pernoite": "Arapongas", "ensaios": "205", "km": "82.0", "km_acum": "2503.2", "deslocamento_km": "157", "jornada_h": "6.9"}, {"dia": "D32", "data": "2026-11-30", "dia_semana": "seg", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Ivaí, Vale do Tibagi", "rodovias": "PR-170", "saida": "Arapongas", "pernoite": "Porecatu", "ensaios": "205", "km": "82.0", "km_acum": "2585.2", "deslocamento_km": "158", "jornada_h": "6.9"}, {"dia": "D33", "data": "2026-12-01", "dia_semana": "ter", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-170, PR-90", "saida": "Porecatu", "pernoite": "Porecatu", "ensaios": "205", "km": "82.0", "km_acum": "2667.2", "deslocamento_km": "126", "jornada_h": "6.4"}, {"dia": "D34", "data": "2026-12-02", "dia_semana": "qua", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-90, PR-537", "saida": "Porecatu", "pernoite": "Bela Vista do Paraíso", "ensaios": "205", "km": "82.0", "km_acum": "2749.2", "deslocamento_km": "112", "jornada_h": "6.1"}, {"dia": "D35", "data": "2026-12-03", "dia_semana": "qui", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-537, PR-450", "saida": "Bela Vista do Paraíso", "pernoite": "Porecatu", "ensaios": "205", "km": "82.0", "km_acum": "2831.2", "deslocamento_km": "102", "jornada_h": "6.0"}, {"dia": "D36", "data": "2026-12-04", "dia_semana": "sex", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Tibagi, Vale do Ivaí", "rodovias": "PR-450, PR-534, PR-340, PR-547, PR-218", "saida": "Porecatu", "pernoite": "Arapongas", "ensaios": "205", "km": "82.0", "km_acum": "2913.2", "deslocamento_km": "191", "jornada_h": "7.4"}, {"dia": "D37", "data": "2026-12-07", "dia_semana": "seg", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Ivaí", "rodovias": "PR-218, PR-547, PR-454", "saida": "Arapongas", "pernoite": "Astorga", "ensaios": "205", "km": "82.0", "km_acum": "2995.2", "deslocamento_km": "106", "jornada_h": "6.0"}, {"dia": "D38", "data": "2026-12-08", "dia_semana": "ter", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Ivaí, Vale do Tibagi", "rodovias": "PR-454, PR-937, PR-340", "saida": "Astorga", "pernoite": "Astorga", "ensaios": "205", "km": "82.0", "km_acum": "3077.2", "deslocamento_km": "147", "jornada_h": "6.7"}, {"dia": "D39", "data": "2026-12-09", "dia_semana": "qua", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Tibagi", "rodovias": "PR-340, PR-543, PR-542", "saida": "Astorga", "pernoite": "Astorga", "ensaios": "205", "km": "82.0", "km_acum": "3159.2", "deslocamento_km": "212", "jornada_h": "7.8"}, {"dia": "D40", "data": "2026-12-10", "dia_semana": "qui", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Tibagi, Vale do Ivaí", "rodovias": "PR-542, PR-170", "saida": "Astorga", "pernoite": "Apucarana", "ensaios": "203", "km": "81.2", "km_acum": "3240.4", "deslocamento_km": "212", "jornada_h": "7.8"}, {"dia": "D41", "data": "2026-12-11", "dia_semana": "sex", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Ivaí", "rodovias": "PR-170, PRC-466, PR-453", "saida": "Apucarana", "pernoite": "Borrazópolis", "ensaios": "205", "km": "82.0", "km_acum": "3322.4", "deslocamento_km": "132", "jornada_h": "6.5"}, {"dia": "D42", "data": "2026-12-14", "dia_semana": "seg", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Ivaí", "rodovias": "PR-453, PR-451, PR-82", "saida": "Borrazópolis", "pernoite": "Borrazópolis", "ensaios": "205", "km": "82.0", "km_acum": "3404.4", "deslocamento_km": "150", "jornada_h": "6.8"}, {"dia": "D43", "data": "2026-12-15", "dia_semana": "ter", "ciclo": "Ciclo 3", "escritorio_regional": "Vale do Ivaí", "rodovias": "PR-82, PR-535, PRC-466", "saida": "Borrazópolis", "pernoite": "Ivaiporã", "ensaios": "205", "km": "82.0", "km_acum": "3486.4", "deslocamento_km": "185", "jornada_h": "7.3"}, {"dia": "D44", "data": "2026-12-16", "dia_semana": "qua", "ciclo": "Ciclo 4", "escritorio_regional": "Vale do Ivaí", "rodovias": "PRC-466, PR-848, PR-850", "saida": "Ivaiporã", "pernoite": "Ivaiporã", "ensaios": "205", "km": "82.0", "km_acum": "3568.4", "deslocamento_km": "132", "jornada_h": "6.5"}, {"dia": "D45", "data": "2026-12-17", "dia_semana": "qui", "ciclo": "Ciclo 4", "escritorio_regional": "Vale do Ivaí", "rodovias": "PRC-466, PR-82", "saida": "Ivaiporã", "pernoite": "São João do Ivaí", "ensaios": "205", "km": "82.0", "km_acum": "3650.4", "deslocamento_km": "100", "jornada_h": "5.9"}, {"dia": "D46", "data": "2026-12-18", "dia_semana": "sex", "ciclo": "Ciclo 4", "escritorio_regional": "Vale do Ivaí", "rodovias": "PR-82, PR-457, PR-650", "saida": "São João do Ivaí", "pernoite": "São João do Ivaí", "ensaios": "205", "km": "82.0", "km_acum": "3732.4", "deslocamento_km": "80", "jornada_h": "5.6"}, {"dia": "D47", "data": "2026-12-21", "dia_semana": "seg", "ciclo": "Ciclo 4", "escritorio_regional": "Vale do Ivaí", "rodovias": "PR-650, PRC-466, PRC-272", "saida": "São João do Ivaí", "pernoite": "São João do Ivaí", "ensaios": "205", "km": "82.0", "km_acum": "3814.4", "deslocamento_km": "180", "jornada_h": "7.3"}, {"dia": "D48", "data": "2026-12-22", "dia_semana": "ter", "ciclo": "Ciclo 4", "escritorio_regional": "Vale do Ivaí", "rodovias": "PRC-272, PR-539", "saida": "São João do Ivaí", "pernoite": "Faxinal", "ensaios": "205", "km": "82.0", "km_acum": "3896.4", "deslocamento_km": "187", "jornada_h": "7.4"}, {"dia": "D49", "data": "2027-01-04", "dia_semana": "seg", "ciclo": "Ciclo 4", "escritorio_regional": "Vale do Ivaí, Vale do Tibagi", "rodovias": "PR-539, PR-532", "saida": "Faxinal", "pernoite": "Faxinal", "ensaios": "127", "km": "50.8", "km_acum": "3947.2", "deslocamento_km": "154", "jornada_h": "5.4"}];
+  const DEF = {"km_dia": 80, "colaboradores": 3, "salario": 4000, "encargos_pct": 85, "diaria_hotel": 200, "veiculos": 3, "locacao": 2500, "combustivel": 1800};
+  const KEY = 'fwd-sre-norte-params';
+  let p = { ...DEF };
+  try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') p = { ...DEF, ...s }; } catch (e) {}
+  const subs = [], calcs = {};
+  const fire = () => subs.forEach((f) => { try { f(); } catch (e) { console.error(e); } });
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) {} };
+  return {
+    colors: ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)'],
+    params: () => ({ ...p }),
+    setParams: (o) => { p = { ...p, ...o }; save(); fire(); },
+    resetParams: () => { p = { ...DEF }; save(); fire(); },
+    calc: (name, def) => { calcs[name] = def; },
+    data: (name) => {
+      if (name === 'programacao') return { status: 'ok', data: ROWS };
+      if (calcs[name]) { try { return { status: 'ok', data: calcs[name].fn(...calcs[name].inputs.map((i) => window.dash.data(i).data)) }; } catch (e) { return { status: 'error' }; } }
+      return { status: 'error' };
+    },
+    onData: (f) => { subs.push(f); setTimeout(f, 0); }
+  };
+})();
+let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = setTimeout(() => window.dash.setParams({}), 150); });
+</script>
+<main class="wrap">
+
+<div class="fx">
+  <header class="fx-head" id="topo">
+    <span class="eyebrow">SRE Norte · DER-PR · 3.947,54 km · R$ 347.656,19</span>
+    <h1>Custo por ciclo · FWD SRE Norte</h1>
+    <p class="fx-take">Custo previsto de cada ciclo comparado à sua medição, com espaço para lançar o custo realizado. <a href="producao-fwd-sre-norte.html">Ver o painel completo de produção</a>.</p>
+  </header>
+
+  <section class="fx-card" id="custos">
+    <h2>Premissas</h2>
+    <p class="fx-note">Altere a produção diária e os custos: a análise abaixo recalcula. As premissas e os custos realizados são os mesmos do painel completo neste navegador.</p>
+    <div class="fx-split" id="premissas-custo">
+        <div class="fx-form">
+          <label class="fx-field">Produção diária (km/dia)<input id="c-km_dia" type="number" min="10" max="300" step="5" inputmode="decimal"></label>
+          <label class="fx-field">Colaboradores<input id="c-colaboradores" type="number" min="0" step="1" inputmode="numeric"></label>
+          <label class="fx-field">Salário base mensal (R$)<input id="c-salario" type="number" min="0" step="100" inputmode="decimal"></label>
+          <label class="fx-field">Encargos CLT (%)<input id="c-encargos_pct" type="number" min="0" step="1" inputmode="decimal"></label>
+          <label class="fx-field">Diária de hotel por pessoa (R$)<input id="c-diaria_hotel" type="number" min="0" step="10" inputmode="decimal"></label>
+          <label class="fx-field">Veículos<input id="c-veiculos" type="number" min="0" step="1" inputmode="numeric"></label>
+          <label class="fx-field">Locação mensal por veículo (R$)<input id="c-locacao" type="number" min="0" step="100" inputmode="decimal"></label>
+          <label class="fx-field">Combustível mensal por veículo (R$)<input id="c-combustivel" type="number" min="0" step="100" inputmode="decimal"></label>
+        </div>
+        <button type="button" class="fx-btn" id="c-reset">Voltar aos valores padrão</button>
+        <p class="fx-sub" id="c-periodo">—</p>
+      </div>
+  </section>
+
+  <section class="fx-card" id="custo-ciclo">
+    <style>:root { --cc-outros: #7b5ea7; } :root[data-theme="dark"] { --cc-outros: #b9a0dc; } @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cc-outros: #b9a0dc; } }</style>
+    <h2>Custo por ciclo</h2>
+    <p class="fx-take" id="cc-take">—</p>
+    <p class="fx-note">Custo previsto de cada ciclo com as premissas da simulação acima e os ajustes por ciclo informados abaixo, comparado à medição do ciclo (percentual do cronograma REV03 × R$ 347.656,19). Cada dia corrido entra no ciclo do próximo dia de campo, então fins de semana e o recesso pertencem ao ciclo em que caem. A mobilização (13/10) aparece separada, com sua medição de 5,75%.</p>
+    <div class="fx-legend" id="cc-leg"></div>
+    <div class="fx-chart" id="cc-chart" style="min-height:240px"></div>
+    <h3 style="margin:8px 0 0;font-size:var(--cds-font-size-body);font-weight:600">Ajustes por ciclo</h3>
+    <p class="fx-note">Se um ciclo tiver hotel mais caro, mais combustível ou outra despesa (pedágio, manutenção, alimentação), informe aqui. Campo vazio usa a premissa geral, que aparece em cinza. Combustível é o gasto mensal por veículo, contado nos dias em operação do ciclo.</p>
+    <div class="fx-tablebox" style="max-height:none">
+      <table id="tab-ajustes">
+        <thead><tr>
+          <th><button type="button" tabindex="-1">Ciclo</button></th>
+          <th class="n"><button type="button" tabindex="-1">Diária hotel/pessoa (R$)</button></th>
+          <th class="n"><button type="button" tabindex="-1">Combustível/mês/veículo (R$)</button></th>
+          <th class="n"><button type="button" tabindex="-1">Outros custos (R$)</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <button type="button" class="fx-btn" id="cc-aj-limpar">Voltar às premissas gerais</button>
+    <p class="fx-note" id="cc-aj-aviso" hidden></p>
+    
+    <p class="fx-note">Informe o custo realizado de cada ciclo encerrado para comparar com o previsto. Os valores ficam salvos neste navegador.</p>
+    <div class="fx-tablebox" style="max-height:none">
+      <table id="tab-custo-ciclo">
+        <thead><tr>
+          <th><button type="button" tabindex="-1">Ciclo</button></th>
+          <th><button type="button" tabindex="-1">Período</button></th>
+          <th class="n"><button type="button" tabindex="-1">Dias campo</button></th>
+          <th class="n"><button type="button" tabindex="-1">km</button></th>
+          <th class="n"><button type="button" tabindex="-1">Custo prev.</button></th>
+          <th class="n"><button type="button" tabindex="-1">Custo/km</button></th>
+          <th class="n"><button type="button" tabindex="-1">Medição</button></th>
+          <th class="n"><button type="button" tabindex="-1">Saldo prev.</button></th>
+          <th class="n"><button type="button" tabindex="-1">Margem</button></th>
+          <th class="n"><button type="button" tabindex="-1">Custo real (R$)</button></th>
+          <th class="n"><button type="button" tabindex="-1">Real − prev.</button></th>
+          <th class="n"><button type="button" tabindex="-1">Saldo real</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <button type="button" class="fx-btn" id="cc-limpar">Limpar custos realizados</button>
+  </section>
+
+</div>
+
+<script>
+(() => {
+  // Constantes informadas: valor a receber, extensão contratada, mobilização, início do campo, feriados, recesso, prazo e ciclos do cronograma
+  const C = {
+    VALOR_RECEBER: 347656.19, KM_TOTAL: 3947.54,
+    MOBILIZACAO: '2026-10-13', INICIO_CAMPO: '2026-10-14', PRAZO: '2027-01-11',
+    FERIADOS: new Set(['2026-11-02', '2026-11-20']), REC_INI: '2026-12-23', REC_FIM: '2027-01-03', DIAS_MES: 30,
+    // Percentuais dos levantamentos por ciclo no cronograma REV03 (30%, 30%, 23% e 11,25% do valor; mobilização 5,75%)
+    CICLOS: [['Ciclo 1', 0.30], ['Ciclo 2', 0.30], ['Ciclo 3', 0.23], ['Ciclo 4', 0.1125]], MOBILIZACAO_PCT: 0.0575
+  };
+  const D = (s) => new Date(String(s).slice(0, 10) + 'T00:00:00Z');
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const ri = D(C.REC_INI), rf = D(C.REC_FIM), prazo = D(C.PRAZO);
+  const ehDiaDeCampo = (d) => { const w = d.getUTCDay(); return w !== 0 && w !== 6 && !C.FERIADOS.has(iso(d)) && !(d >= ri && d <= rf); };
+  const somaPct = C.CICLOS.reduce((s, c) => s + c[1], 0);
+  let accPct = 0;
+  const LIMITES = C.CICLOS.map(([nome, pct]) => { accPct += pct; return [nome, C.KM_TOTAL * accPct / somaPct]; });
+  const cicloDe = (kmMeio) => (LIMITES.find(([, lim]) => kmMeio <= lim + 1e-9) || LIMITES[LIMITES.length - 1])[0];
+  const num = (v, def) => { const n = Number(v); return Number.isFinite(n) ? n : def; };
+
+  function simular(kmDia, p) {
+    kmDia = Math.max(1, kmDia);
+    const n = Math.max(1, Math.ceil(C.KM_TOTAL / kmDia - 1e-9));
+    const dias = []; let rest = C.KM_TOTAL, acum = 0, d = D(C.INICIO_CAMPO);
+    while (dias.length < n) {
+      if (ehDiaDeCampo(d)) { const k = Math.min(kmDia, rest); const ciclo = cicloDe(acum + k / 2); rest -= k; acum += k; const s = iso(d); dias.push({ n: dias.length + 1, iso: s, date: d, km: k, km_acum: acum, ciclo }); }
+      d = new Date(d.getTime() + 864e5);
+    }
+    const campo = new Map(dias.map((x) => [x.iso, x.km]));
+    const ini = D(C.MOBILIZACAO), termino = dias[dias.length - 1].date, fim = new Date(termino.getTime() + 864e5);
+    const cmes = num(p.salario, 0) * (1 + num(p.encargos_pct, 0) / 100);
+    const col = num(p.colaboradores, 0), vei = num(p.veiculos, 0);
+    const pDia = col * cmes / C.DIAS_MES, lDia = vei * num(p.locacao, 0) / C.DIAS_MES, cDia = vei * num(p.combustivel, 0) / C.DIAS_MES, hDia = col * num(p.diaria_hotel, 0);
+    const valorKm = C.VALOR_RECEBER / C.KM_TOTAL;
+    const acc = { pessoal: 0, hotel: 0, locacao: 0, combustivel: 0 }; let km = 0, nCorr = 0, nOp = 0, nHotel = 0;
+    const serie = [];
+    for (let x = ini; x <= fim; x = new Date(x.getTime() + 864e5)) {
+      const s = iso(x); const rec = x >= ri && x <= rf;
+      nCorr++; acc.pessoal += pDia; acc.locacao += lDia;
+      if (!rec) { nOp++; acc.combustivel += cDia; }
+      // Hotel todas as noites (inclusive sábado e domingo), da mobilização até a véspera do último dia de campo, fora do recesso
+      if (x < termino && !rec) { nHotel++; acc.hotel += hDia; }
+      km += campo.get(s) || 0;
+      serie.push({ date: x, custo: acc.pessoal + acc.hotel + acc.locacao + acc.combustivel, valor: km * valorKm, km });
+    }
+    const total = acc.pessoal + acc.hotel + acc.locacao + acc.combustivel;
+    return { kmDia, dias, acc, total, serie, ini, fim, termino, nCorr, nOp, nHotel, nDias: n, saldo: C.VALOR_RECEBER - total, folga: Math.round((prazo - termino) / 864e5) };
+  }
+  window.fxSim = { C, D, iso, simular, prazo, ri, rf, LIMITES, somaPct, cicloDe };
+})();
+</script>
+<script>
+(() => {
+  // Premissas: mesmos campos e mesma memória do painel de produção
+  const FIELDS = ['km_dia', 'colaboradores', 'salario', 'encargos_pct', 'diaria_hotel', 'veiculos', 'locacao', 'combustivel'];
+  FIELDS.forEach((k) => {
+    const el = document.getElementById('c-' + k);
+    el.addEventListener('change', () => {
+      const v = Number(el.value); const okMin = k === 'km_dia' ? v >= 10 : v >= 0;
+      if (el.value === '' || !Number.isFinite(v) || !okMin) { el.setAttribute('aria-invalid', 'true'); return; }
+      el.removeAttribute('aria-invalid'); dash.setParams({ [k]: v });
+    });
+    el.addEventListener('blur', () => { el.removeAttribute('aria-invalid'); el.value = dash.params()[k] ?? ''; });
+  });
+  document.getElementById('c-reset').addEventListener('click', () => dash.resetParams());
+  const loc = d3.formatLocale({ decimal: ',', thousands: '.', grouping: [3], currency: ['R$ ', ''] });
+  const brl0 = loc.format('$,.0f'), f0 = loc.format(',.0f'), f1 = loc.format(',.1f'), fp = loc.format('.1%');
+  const dmy = (d) => d.toISOString().slice(0, 10).split('-').reverse().join('/');
+  dash.onData(() => {
+    FIELDS.forEach((k) => { const el = document.getElementById('c-' + k); if (el !== document.activeElement) el.value = dash.params()[k] ?? ''; });
+    const p = { ...dash.params() }; p.km_dia = Number(p.km_dia); if (!(p.km_dia >= 10)) return;
+    const s = window.fxSim.simular(p.km_dia, p);
+    document.getElementById('c-periodo').textContent = `${f1(p.km_dia)} km/dia → ${f0(s.nDias)} dias de campo, de 14/10/2026 a ${dmy(s.termino)} (segunda a sexta, sem 02/11, 20/11 e o recesso de 23/12 a 03/01). Custo total previsto ${brl0(s.total)} (${fp(s.total / window.fxSim.C.VALOR_RECEBER)} do valor a receber); saldo ${brl0(s.saldo)}.`;
+  });
+})();
+</script>
+<script>
+(() => {
+  // Custo por ciclo: distribui o custo diário da simulação entre mobilização e ciclos e compara com a medição de cada um
+  const { C, D, iso, simular, ri, rf } = window.fxSim;
+  const loc = d3.formatLocale({ decimal: ',', thousands: '.', grouping: [3], currency: ['R$ ', ''] });
+  const brl0 = loc.format('$,.0f'), brl2 = loc.format('$,.2f'), f0 = loc.format(',.0f'), f1 = loc.format(',.1f'), fp = loc.format('.1%');
+  const brlAxis = (v) => Math.abs(v) >= 1000 ? `R$ ${loc.format(',.0f')(v / 1000)} mil` : brl0(v);
+  const dmy = (d) => iso(d).split('-').reverse().join('/');
+  const dm = (d) => dmy(d).slice(0, 5), dmya = (d) => dmy(d).slice(0, 6) + dmy(d).slice(8);
+  const per = (a, b) => iso(a) === iso(b) ? dmya(a) : `${dm(a)} a ${dmya(b)}`;
+  const num = (v, def) => { const n = Number(v); return Number.isFinite(n) ? n : def; };
+  const KEY = 'fwd-sre-norte-custo-realizado';
+  let real = {};
+  try { const o = JSON.parse(localStorage.getItem(KEY) || 'null'); if (o && typeof o === 'object') real = o; } catch (e) {}
+  const saveReal = () => { try { localStorage.setItem(KEY, JSON.stringify(real)); } catch (e) {} };
+  const KEY_AJ = 'fwd-sre-norte-ajustes-ciclo';
+  let aj = {};
+  try { const o = JSON.parse(localStorage.getItem(KEY_AJ) || 'null'); if (o && typeof o === 'object') aj = o; } catch (e) {}
+  const saveAj = () => { try { localStorage.setItem(KEY_AJ, JSON.stringify(aj)); } catch (e) {} };
+  const AJ = [['diaria_hotel', 'Diária de hotel por pessoa (R$)', 10], ['combustivel', 'Combustível mensal por veículo (R$)', 100], ['outros', 'Outros custos do ciclo (R$)', 100]];
+  const ajv = (nome, k) => { const v = aj[nome] && aj[nome][k]; return v === undefined || v === null || v === '' ? NaN : Number(v); };
+  const COMP = [['pessoal', 'Pessoal'], ['hotel', 'Hotel'], ['locacao', 'Locação'], ['combustivel', 'Combustível'], ['outros', 'Outros']];
+  const MOB = 'Mobilização';
+
+  function porCiclo(s, p) {
+    const cmes = num(p.salario, 0) * (1 + num(p.encargos_pct, 0) / 100);
+    const col = num(p.colaboradores, 0), vei = num(p.veiculos, 0);
+    const pDia = col * cmes / C.DIAS_MES, lDia = vei * num(p.locacao, 0) / C.DIAS_MES;
+    const cDiaDe = (n) => vei * (Number.isFinite(ajv(n, 'combustivel')) ? ajv(n, 'combustivel') : num(p.combustivel, 0)) / C.DIAS_MES;
+    const hDiaDe = (n) => col * (Number.isFinite(ajv(n, 'diaria_hotel')) ? ajv(n, 'diaria_hotel') : num(p.diaria_hotel, 0));
+    const nomes = [MOB, ...C.CICLOS.map((c) => c[0])];
+    const out = new Map(nomes.map((n) => [n, { nome: n, pessoal: 0, hotel: 0, locacao: 0, combustivel: 0, outros: Number.isFinite(ajv(n, 'outros')) ? ajv(n, 'outros') : 0, km: 0, diasCampo: 0, diasCorr: 0, ini: null, fim: null, medicao: n === MOB ? C.MOBILIZACAO_PCT * C.VALOR_RECEBER : (C.CICLOS.find((c) => c[0] === n) || [, 0])[1] * C.VALOR_RECEBER }]));
+    const campo = s.dias; let k = 0;
+    for (let x = s.ini; x <= s.fim; x = new Date(x.getTime() + 864e5)) {
+      const rec = x >= ri && x <= rf;
+      while (k < campo.length && campo[k].date < x) k++;
+      const nome = iso(x) === iso(s.ini) ? MOB : (k < campo.length ? campo[k].ciclo : campo[campo.length - 1].ciclo);
+      const o = out.get(nome);
+      o.diasCorr++; o.pessoal += pDia; o.locacao += lDia;
+      if (!rec) o.combustivel += cDiaDe(nome);
+      if (x < s.termino && !rec) o.hotel += hDiaDe(nome);
+      if (!o.ini) o.ini = x; o.fim = x;
+      if (k < campo.length && iso(campo[k].date) === iso(x)) { o.km += campo[k].km; o.diasCampo++; }
+    }
+    return nomes.map((n) => { const o = out.get(n); o.custo = o.pessoal + o.hotel + o.locacao + o.combustivel + o.outros; o.saldo = o.medicao - o.custo; return o; }).filter((o) => o.diasCorr > 0 || o.medicao > 0);
+  }
+
+  const textW = (svg, t) => { const e = svg.append('text').attr('font-size', 12).text(t); const w = e.node().getComputedTextLength(); e.remove(); return w; };
+  const corComp = (i) => i < 4 ? dash.colors[i] : 'var(--cc-outros)';
+
+  function drawLegend() {
+    const leg = document.getElementById('cc-leg'); leg.replaceChildren();
+    COMP.forEach(([, n], i) => { const sp = document.createElement('span'); const sw = document.createElement('i'); sw.className = 'fx-sw'; sw.style.background = corComp(i); sp.append(sw, document.createTextNode(n)); leg.appendChild(sp); });
+    const sp = document.createElement('span'); const sw = document.createElement('i'); sw.style.cssText = 'display:inline-block;width:3px;height:14px;background:var(--color-fg)'; sp.append(sw, document.createTextNode('Medição do ciclo')); leg.appendChild(sp);
+    const sp2 = document.createElement('span'); const sw2 = document.createElement('i'); sw2.style.cssText = 'display:inline-block;width:14px;height:4px;background:var(--cds-chart-muted)'; sp2.append(sw2, document.createTextNode('Custo realizado (quando informado)')); leg.appendChild(sp2);
+  }
+
+  function drawChart(el, linhas) {
+    el.innerHTML = '';
+    const rowH = 40, top = 8, H = top + linhas.length * rowH + 26, W = Math.max(300, el.clientWidth);
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Custo previsto por ciclo comparado à medição de cada ciclo');
+    const left = Math.ceil(d3.max(linhas, (o) => textW(svg, o.nome))) + 12;
+    const curto = W < 640;
+    const labs = linhas.map((o) => curto ? `${o.saldo >= 0 ? '+' : '−'}${brlAxis(Math.abs(o.saldo))}` : `saldo previsto ${brlAxis(o.saldo)}`);
+    const right = Math.ceil(d3.max(labs, (t) => textW(svg, t))) + 16;
+    const xmax = d3.max(linhas, (o) => Math.max(o.custo, o.medicao, num(real[o.nome], 0))) || 1;
+    const x = d3.scaleLinear([0, xmax], [left, W - right]).nice();
+    let ticks = x.ticks(Math.max(2, Math.floor((W - left - right) / 90)));
+    while (ticks.length > 2 && (x(ticks[1]) - x(ticks[0])) < 72) ticks = ticks.filter((_, i) => i % 2 === 0);
+    const yBase = H - 22;
+    svg.append('g').selectAll('line').data(ticks).join('line').attr('x1', (v) => x(v)).attr('x2', (v) => x(v)).attr('y1', top).attr('y2', yBase).attr('stroke', 'var(--cds-chart-grid)');
+    svg.append('g').selectAll('text').data(ticks).join('text').attr('x', (v) => x(v)).attr('y', H - 6).attr('text-anchor', 'middle').attr('font-size', 12).attr('fill', 'var(--color-fg-muted)').text(brlAxis);
+    let t = el.querySelector('.fx-tip'); if (!t) { t = document.createElement('div'); t.className = 'fx-tip'; t.hidden = true; el.appendChild(t); }
+    const line = (a, b) => { const d = document.createElement('div'); d.className = a; d.textContent = b; t.appendChild(d); };
+    linhas.forEach((o, i) => {
+      const y0 = top + i * rowH, bh = 18, by = y0 + 6;
+      const g = svg.append('g');
+      g.append('text').attr('x', left - 10).attr('y', by + bh / 2).attr('dy', '0.32em').attr('text-anchor', 'end').attr('font-size', 12).attr('font-weight', 600).attr('fill', 'var(--color-fg)').text(o.nome);
+      let acc = 0;
+      COMP.forEach(([k], j) => { const v = o[k]; if (v <= 0) return; g.append('rect').attr('x', x(acc)).attr('y', by).attr('width', Math.max(0, x(acc + v) - x(acc) - (acc + v < o.custo ? 1 : 0))).attr('height', bh).attr('fill', corComp(j)); acc += v; });
+      const r = num(real[o.nome], NaN);
+      if (Number.isFinite(r) && r > 0) g.append('rect').attr('x', x(0)).attr('y', by + bh + 3).attr('width', Math.max(0, x(r) - x(0))).attr('height', 5).attr('rx', 2).attr('fill', 'var(--cds-chart-muted)');
+      const mx = x(o.medicao);
+      g.append('line').attr('x1', mx).attr('x2', mx).attr('y1', by - 4).attr('y2', by + bh + 4).attr('stroke', 'var(--color-fg)').attr('stroke-width', 3);
+      g.append('text').attr('x', Math.max(mx, x(o.custo)) + 8).attr('y', by + bh / 2).attr('dy', '0.32em').attr('font-size', 12).attr('font-weight', 600).attr('fill', o.saldo >= 0 ? 'var(--color-ok)' : 'var(--color-bad)').text(labs[i]);
+      g.append('rect').attr('x', 0).attr('y', y0).attr('width', W).attr('height', rowH).attr('fill', 'transparent')
+        .on('mousemove', (ev) => {
+          t.replaceChildren();
+          line('t', `${o.nome} · ${dmy(o.ini)} a ${dmy(o.fim)}`);
+          COMP.forEach(([k, n]) => { if (k !== 'outros' || o[k]) line('', `${n}: ${brl0(o[k])}`); });
+          line('v', `Custo previsto: ${brl0(o.custo)}`);
+          line('', `Medição: ${brl0(o.medicao)}`);
+          if (Number.isFinite(r) && r > 0) line('', `Custo realizado: ${brl0(r)}`);
+          const [qx, qy] = d3.pointer(ev, el); t.hidden = false;
+          let lf = qx + 12; if (lf + t.offsetWidth > el.clientWidth) lf = Math.max(0, qx - t.offsetWidth - 12);
+          let tp = qy - t.offsetHeight - 8; if (tp < 0) tp = qy + 12;
+          t.style.left = lf + 'px'; t.style.top = tp + 'px';
+        })
+        .on('mouseleave', () => { t.hidden = true; });
+    });
+    svg.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', top).attr('y2', yBase).attr('stroke', 'var(--cds-chart-axis)');
+  }
+
+  function drawTable(linhas) {
+    const tb = document.querySelector('#tab-custo-ciclo tbody'); tb.replaceChildren();
+    const td = (tr, txt, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = txt; tr.appendChild(c); return c; };
+    let totReal = 0, nReal = 0, totPrevReal = 0, totMedReal = 0;
+    for (const o of linhas) {
+      const tr = document.createElement('tr');
+      td(tr, o.nome).style.fontWeight = '600';
+      td(tr, o.ini ? per(o.ini, o.fim) : '—').style.whiteSpace = 'nowrap';
+      td(tr, o.nome === MOB ? '—' : f0(o.diasCampo), 'n');
+      td(tr, o.km ? f1(o.km) : '—', 'n');
+      td(tr, brl0(o.custo), 'n');
+      td(tr, o.km ? brl2(o.custo / o.km) : '—', 'n');
+      td(tr, brl0(o.medicao), 'n');
+      td(tr, brl0(o.saldo), 'n ' + (o.saldo >= 0 ? 'fx-good' : 'fx-badv'));
+      td(tr, o.medicao ? fp(o.saldo / o.medicao) : '—', 'n ' + (o.saldo >= 0 ? 'fx-good' : 'fx-badv'));
+      const ci = td(tr, '', 'n');
+      const inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.step = '100'; inp.inputMode = 'decimal'; inp.placeholder = '—';
+      inp.setAttribute('aria-label', `Custo realizado ${o.nome} (R$)`);
+      inp.style.cssText = 'width:7.5rem;box-sizing:border-box;padding:2px 6px;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg);font:inherit;text-align:right';
+      const r = num(real[o.nome], NaN); if (Number.isFinite(r)) inp.value = r;
+      inp.addEventListener('change', () => {
+        if (inp.value === '') { delete real[o.nome]; saveReal(); dash.setParams({}); return; }
+        const v = Number(inp.value);
+        if (!Number.isFinite(v) || v < 0) { inp.setAttribute('aria-invalid', 'true'); inp.style.borderColor = 'var(--color-bad)'; return; }
+        real[o.nome] = v; saveReal(); dash.setParams({});
+      });
+      ci.appendChild(inp);
+      if (Number.isFinite(r)) {
+        const dv = r - o.custo; td(tr, (dv > 0 ? '+' : '') + brl0(dv), 'n ' + (dv <= 0 ? 'fx-good' : 'fx-badv'));
+        const sr = o.medicao - r; td(tr, brl0(sr), 'n ' + (sr >= 0 ? 'fx-good' : 'fx-badv'));
+        totReal += r; nReal++; totPrevReal += o.custo; totMedReal += o.medicao;
+      } else { td(tr, '—', 'n'); td(tr, '—', 'n'); }
+      tb.appendChild(tr);
+    }
+    const tot = (k) => d3.sum(linhas, (o) => o[k]);
+    const tr = document.createElement('tr');
+    const tt = (txt, cls) => { const c = td(tr, txt, cls); c.style.fontWeight = '600'; return c; };
+    const custo = tot('custo'), med = tot('medicao'), km = tot('km');
+    tt('Total'); tt(per(linhas[0].ini, linhas[linhas.length - 1].fim)).style.whiteSpace = 'nowrap'; tt(f0(tot('diasCampo')), 'n'); tt(f1(km), 'n'); tt(brl0(custo), 'n'); tt(brl2(custo / km), 'n'); tt(brl0(med), 'n');
+    tt(brl0(med - custo), 'n ' + (med - custo >= 0 ? 'fx-good' : 'fx-badv')); tt(fp((med - custo) / med), 'n ' + (med - custo >= 0 ? 'fx-good' : 'fx-badv'));
+    if (nReal) { tt(brl0(totReal), 'n'); const dv = totReal - totPrevReal; tt((dv > 0 ? '+' : '') + brl0(dv), 'n ' + (dv <= 0 ? 'fx-good' : 'fx-badv')); tt(brl0(totMedReal - totReal), 'n ' + (totMedReal - totReal >= 0 ? 'fx-good' : 'fx-badv')); }
+    else { tt('—', 'n'); tt('—', 'n'); tt('—', 'n'); }
+    tb.appendChild(tr);
+    return { nReal, totReal, totPrevReal };
+  }
+
+  function drawTake(linhas, rr) {
+    const el = document.getElementById('cc-take'); el.replaceChildren();
+    const b = (txt) => { const x = document.createElement('b'); x.textContent = txt; return x; };
+    const ciclos = linhas.filter((o) => o.nome !== MOB);
+    const pior = ciclos.reduce((a, o) => (o.saldo / o.medicao < a.saldo / a.medicao ? o : a), ciclos[0]);
+    const neg = ciclos.filter((o) => o.saldo < 0);
+    if (neg.length) el.append(b(neg.map((o) => o.nome).join(' e ')), document.createTextNode(` ${neg.length > 1 ? 'custam' : 'custa'} mais do que ${neg.length > 1 ? 'medem' : 'mede'}: ${pior.nome} fecha com saldo de `), b(brl0(pior.saldo)), document.createTextNode(` (${fp(pior.saldo / pior.medicao)} da medição).`));
+    else el.append(document.createTextNode('Todos os ciclos ficam com saldo positivo; o de menor margem é o '), b(pior.nome), document.createTextNode(`, com ${fp(pior.saldo / pior.medicao)} da medição (${brl0(pior.saldo)}).`));
+    if (pior.diasCorr > pior.diasCampo * 1.6 && pior.nome !== MOB) el.append(document.createTextNode(` Ele tem ${f0(pior.diasCorr)} dias corridos para ${f0(pior.diasCampo)} de campo, e pessoal e locação correm todos os dias.`));
+    if (rr.nReal) { const dv = rr.totReal - rr.totPrevReal; el.append(document.createTextNode(` Nos ciclos com custo realizado, o gasto ficou `), b(`${brl0(Math.abs(dv))} ${dv > 0 ? 'acima' : 'abaixo'}`), document.createTextNode(' do previsto.')); }
+  }
+
+  function drawAjustes(linhas, p) {
+    const tb = document.querySelector('#tab-ajustes tbody'); tb.replaceChildren();
+    for (const o of linhas) {
+      const tr = document.createElement('tr');
+      const c0 = document.createElement('td'); c0.textContent = o.nome; c0.style.fontWeight = '600'; tr.appendChild(c0);
+      for (const [k, lab, step] of AJ) {
+        const td = document.createElement('td'); td.className = 'n';
+        const inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.step = String(step); inp.inputMode = 'decimal';
+        inp.placeholder = k === 'outros' ? '0' : loc.format(',.0f')(num(p[k], 0));
+        inp.setAttribute('aria-label', `${lab} · ${o.nome}`);
+        inp.style.cssText = 'width:8.5rem;box-sizing:border-box;padding:2px 6px;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg);font:inherit;text-align:right';
+        const v = ajv(o.nome, k); if (Number.isFinite(v)) { inp.value = v; inp.style.borderColor = 'var(--cds-chart-reference)'; inp.style.fontWeight = '600'; }
+        inp.addEventListener('change', () => {
+          aj[o.nome] = aj[o.nome] || {};
+          if (inp.value === '') delete aj[o.nome][k];
+          else { const nv = Number(inp.value); if (!Number.isFinite(nv) || nv < 0) { inp.setAttribute('aria-invalid', 'true'); inp.style.borderColor = 'var(--color-bad)'; return; } aj[o.nome][k] = nv; }
+          saveAj(); dash.setParams({});
+        });
+        td.appendChild(inp); tr.appendChild(td);
+      }
+      tb.appendChild(tr);
+    }
+  }
+  document.getElementById('cc-aj-limpar').addEventListener('click', () => { aj = {}; saveAj(); dash.setParams({}); });
+  document.getElementById('cc-limpar').addEventListener('click', () => { real = {}; saveReal(); dash.setParams({}); });
+  drawLegend();
+  dash.onData(() => {
+    const p = { ...dash.params() }; p.km_dia = Number(p.km_dia);
+    if (!(p.km_dia >= 10)) return;
+    const s = simular(p.km_dia, p);
+    const linhas = porCiclo(s, p);
+    drawAjustes(linhas, p);
+    const rr = drawTable(linhas);
+    const nAj = Object.values(aj).reduce((a, x) => a + Object.keys(x || {}).length, 0);
+    const dif = d3.sum(linhas, (o) => o.custo) - s.total;
+    const av = document.getElementById('cc-aj-aviso'); av.hidden = !nAj;
+    if (nAj) av.textContent = `Com os ajustes por ciclo, o custo previsto soma ${brl0(d3.sum(linhas, (o) => o.custo))}, ${brl0(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'} da simulação geral (${brl0(s.total)}).`;
+    drawTake(linhas, rr);
+    drawChart(document.getElementById('cc-chart'), linhas);
+    window.__ccCheck = { soma: d3.sum(linhas, (o) => o.custo), total: s.total, linhas };
+  });
+})();
+</script>
+
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <span>(41) 3123-8550 · afirmaevias.com.br</span>
+    <address><b>Curitiba</b><br>R. Baltazar Carrasco dos Reis, 2348<br>Rebouças, Curitiba – PR, CEP 80230-070</address>
+  </div>
+</footer>
+</body></html>
