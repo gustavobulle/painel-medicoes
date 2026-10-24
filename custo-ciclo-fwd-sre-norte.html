@@ -256,24 +256,32 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     <style>:root { --cc-outros: #7b5ea7; } :root[data-theme="dark"] { --cc-outros: #b9a0dc; } @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cc-outros: #b9a0dc; } }</style>
     <h2>Custo por ciclo</h2>
     <p class="fx-take" id="cc-take">—</p>
-    <p class="fx-note">Custo previsto de cada ciclo com as premissas da simulação acima e os ajustes por ciclo informados abaixo, comparado à medição do ciclo (percentual do cronograma REV03 × R$ 347.656,19). Cada dia corrido entra no ciclo do próximo dia de campo, então fins de semana e o recesso pertencem ao ciclo em que caem. A mobilização (13/10) aparece separada, com sua medição de 5,75%.</p>
-    <div class="fx-legend" id="cc-leg"></div>
-    <div class="fx-chart" id="cc-chart" style="min-height:240px"></div>
-    <h3 style="margin:8px 0 0;font-size:var(--cds-font-size-body);font-weight:600">Ajustes por ciclo</h3>
-    <p class="fx-note">Se um ciclo tiver hotel mais caro, mais combustível ou outra despesa (pedágio, manutenção, alimentação), informe aqui. Campo vazio usa a premissa geral, que aparece em cinza. Combustível é o gasto mensal por veículo, contado nos dias em operação do ciclo.</p>
+    <p class="fx-note">Custo previsto de cada ciclo com os recursos alocados definidos abaixo (ou as premissas gerais), comparado à medição do ciclo (percentual do cronograma REV03 × R$ 347.656,19). Cada dia corrido entra no ciclo do próximo dia de campo, então fins de semana e o recesso pertencem ao ciclo em que caem. A mobilização (13/10) aparece separada, com sua medição de 5,75%.</p>
+    <h3 style="margin:8px 0 0;font-size:var(--cds-font-size-body);font-weight:600">Recursos alocados por ciclo</h3>
+    <p class="fx-note">Defina quantas pessoas e veículos ficam alocados em cada ciclo, a diária de hotel (por pessoa, por noite) e o combustível (mensal, por veículo). O painel calcula o custo do período do ciclo, a produção (km) e o custo por km. Campo vazio usa a premissa geral, que aparece em cinza. Pessoal e locação contam todos os dias corridos do ciclo; hotel conta as noites fora do recesso; combustível é o gasto mensal por veículo, contado nos dias em operação. Passe o mouse sobre a linha para ver a composição.</p>
     <div class="fx-tablebox" style="max-height:none">
       <table id="tab-ajustes">
         <thead><tr>
           <th><button type="button" tabindex="-1">Ciclo</button></th>
-          <th class="n"><button type="button" tabindex="-1">Diária hotel/pessoa (R$)</button></th>
-          <th class="n"><button type="button" tabindex="-1">Combustível/mês/veículo (R$)</button></th>
-          <th class="n"><button type="button" tabindex="-1">Outros custos (R$)</button></th>
+          <th><button type="button" tabindex="-1">Período</button></th>
+          <th class="n"><button type="button" tabindex="-1">Pessoas</button></th>
+          <th class="n"><button type="button" tabindex="-1">Veículos</button></th>
+          <th class="n"><button type="button" tabindex="-1">Hotel/noite (R$)</button></th>
+          <th class="n"><button type="button" tabindex="-1">Comb./mês (R$)</button></th>
+          <th class="n"><button type="button" tabindex="-1">Outros (R$)</button></th>
+          <th class="n"><button type="button" tabindex="-1">Custo período</button></th>
+          <th class="n"><button type="button" tabindex="-1">km</button></th>
+          <th class="n"><button type="button" tabindex="-1">Custo/km</button></th>
         </tr></thead>
         <tbody></tbody>
       </table>
     </div>
     <button type="button" class="fx-btn" id="cc-aj-limpar">Voltar às premissas gerais</button>
     <p class="fx-note" id="cc-aj-aviso" hidden></p>
+    <h3 style="margin:8px 0 0;font-size:var(--cds-font-size-body);font-weight:600">Custo previsto × medição</h3>
+    <div class="fx-legend" id="cc-leg"></div>
+    <div class="fx-chart" id="cc-chart" style="min-height:240px"></div>
+    
     
     <p class="fx-note">Informe o custo realizado de cada ciclo encerrado para comparar com o previsto. Os valores ficam salvos neste navegador.</p>
     <div class="fx-tablebox" style="max-height:none">
@@ -395,28 +403,27 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
   let aj = {};
   try { const o = JSON.parse(localStorage.getItem(KEY_AJ) || 'null'); if (o && typeof o === 'object') aj = o; } catch (e) {}
   const saveAj = () => { try { localStorage.setItem(KEY_AJ, JSON.stringify(aj)); } catch (e) {} };
-  const AJ = [['diaria_hotel', 'Diária de hotel por pessoa (R$)', 10], ['combustivel', 'Combustível mensal por veículo (R$)', 100], ['outros', 'Outros custos do ciclo (R$)', 100]];
+  const AJ = [['colaboradores', 'Pessoas', 1], ['veiculos', 'Veículos', 1], ['diaria_hotel', 'Diária de hotel por pessoa (R$)', 10], ['combustivel', 'Combustível mensal por veículo (R$)', 100], ['outros', 'Outros custos do ciclo (R$)', 100]];
+  const val = (n, k, p) => Number.isFinite(ajv(n, k)) ? ajv(n, k) : (k === 'outros' ? 0 : num(p[k], 0));
   const ajv = (nome, k) => { const v = aj[nome] && aj[nome][k]; return v === undefined || v === null || v === '' ? NaN : Number(v); };
   const COMP = [['pessoal', 'Pessoal'], ['hotel', 'Hotel'], ['locacao', 'Locação'], ['combustivel', 'Combustível'], ['outros', 'Outros']];
   const MOB = 'Mobilização';
 
   function porCiclo(s, p) {
     const cmes = num(p.salario, 0) * (1 + num(p.encargos_pct, 0) / 100);
-    const col = num(p.colaboradores, 0), vei = num(p.veiculos, 0);
-    const pDia = col * cmes / C.DIAS_MES, lDia = vei * num(p.locacao, 0) / C.DIAS_MES;
-    const cDiaDe = (n) => vei * (Number.isFinite(ajv(n, 'combustivel')) ? ajv(n, 'combustivel') : num(p.combustivel, 0)) / C.DIAS_MES;
-    const hDiaDe = (n) => col * (Number.isFinite(ajv(n, 'diaria_hotel')) ? ajv(n, 'diaria_hotel') : num(p.diaria_hotel, 0));
+    const R = (n) => ({ col: val(n, 'colaboradores', p), vei: val(n, 'veiculos', p), hot: val(n, 'diaria_hotel', p), comb: val(n, 'combustivel', p) });
     const nomes = [MOB, ...C.CICLOS.map((c) => c[0])];
-    const out = new Map(nomes.map((n) => [n, { nome: n, pessoal: 0, hotel: 0, locacao: 0, combustivel: 0, outros: Number.isFinite(ajv(n, 'outros')) ? ajv(n, 'outros') : 0, km: 0, diasCampo: 0, diasCorr: 0, ini: null, fim: null, medicao: n === MOB ? C.MOBILIZACAO_PCT * C.VALOR_RECEBER : (C.CICLOS.find((c) => c[0] === n) || [, 0])[1] * C.VALOR_RECEBER }]));
+    const out = new Map(nomes.map((n) => [n, { nome: n, pessoal: 0, hotel: 0, locacao: 0, combustivel: 0, outros: val(n, 'outros', p), rec: R(n), km: 0, diasCampo: 0, diasCorr: 0, ini: null, fim: null, medicao: n === MOB ? C.MOBILIZACAO_PCT * C.VALOR_RECEBER : (C.CICLOS.find((c) => c[0] === n) || [, 0])[1] * C.VALOR_RECEBER }]));
     const campo = s.dias; let k = 0;
     for (let x = s.ini; x <= s.fim; x = new Date(x.getTime() + 864e5)) {
       const rec = x >= ri && x <= rf;
       while (k < campo.length && campo[k].date < x) k++;
       const nome = iso(x) === iso(s.ini) ? MOB : (k < campo.length ? campo[k].ciclo : campo[campo.length - 1].ciclo);
       const o = out.get(nome);
-      o.diasCorr++; o.pessoal += pDia; o.locacao += lDia;
-      if (!rec) o.combustivel += cDiaDe(nome);
-      if (x < s.termino && !rec) o.hotel += hDiaDe(nome);
+      const r = o.rec;
+      o.diasCorr++; o.pessoal += r.col * cmes / C.DIAS_MES; o.locacao += r.vei * num(p.locacao, 0) / C.DIAS_MES;
+      if (!rec) { o.combustivel += r.vei * r.comb / C.DIAS_MES; o.diasOp = (o.diasOp || 0) + 1; }
+      if (x < s.termino && !rec) { o.hotel += r.col * r.hot; o.noites = (o.noites || 0) + 1; }
       if (!o.ini) o.ini = x; o.fim = x;
       if (k < campo.length && iso(campo[k].date) === iso(x)) { o.km += campo[k].km; o.diasCampo++; }
     }
@@ -500,10 +507,10 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
       inp.style.cssText = 'width:7.5rem;box-sizing:border-box;padding:2px 6px;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg);font:inherit;text-align:right';
       const r = num(real[o.nome], NaN); if (Number.isFinite(r)) inp.value = r;
       inp.addEventListener('change', () => {
-        if (inp.value === '') { delete real[o.nome]; saveReal(); dash.setParams({}); return; }
+        if (inp.value === '') { delete real[o.nome]; saveReal(); setTimeout(() => dash.setParams({}), 0); return; }
         const v = Number(inp.value);
         if (!Number.isFinite(v) || v < 0) { inp.setAttribute('aria-invalid', 'true'); inp.style.borderColor = 'var(--color-bad)'; return; }
-        real[o.nome] = v; saveReal(); dash.setParams({});
+        real[o.nome] = v; saveReal(); setTimeout(() => dash.setParams({}), 0);
       });
       ci.appendChild(inp);
       if (Number.isFinite(r)) {
@@ -539,26 +546,42 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
 
   function drawAjustes(linhas, p) {
     const tb = document.querySelector('#tab-ajustes tbody'); tb.replaceChildren();
+    const td = (tr, txt, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = txt; tr.appendChild(c); return c; };
     for (const o of linhas) {
       const tr = document.createElement('tr');
-      const c0 = document.createElement('td'); c0.textContent = o.nome; c0.style.fontWeight = '600'; tr.appendChild(c0);
+      td(tr, o.nome).style.fontWeight = '600';
+      const pc = td(tr, ''); pc.style.whiteSpace = 'nowrap';
+      const l1 = document.createElement('div'); l1.textContent = per(o.ini, o.fim);
+      const l2 = document.createElement('div'); l2.className = 'fx-sub'; l2.textContent = `${f0(o.diasCorr)} ${o.diasCorr === 1 ? 'dia corrido' : 'dias corridos'} · ${f0(o.diasCampo)} de campo`;
+      pc.append(l1, l2);
       for (const [k, lab, step] of AJ) {
-        const td = document.createElement('td'); td.className = 'n';
+        const c = td(tr, '', 'n');
         const inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.step = String(step); inp.inputMode = 'decimal';
         inp.placeholder = k === 'outros' ? '0' : loc.format(',.0f')(num(p[k], 0));
         inp.setAttribute('aria-label', `${lab} · ${o.nome}`);
-        inp.style.cssText = 'width:8.5rem;box-sizing:border-box;padding:2px 6px;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg);font:inherit;text-align:right';
+        const w = k === 'colaboradores' || k === 'veiculos' ? '3.6rem' : '5.6rem';
+        inp.style.cssText = `width:${w};box-sizing:border-box;padding:2px 6px;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg);font:inherit;text-align:right`;
         const v = ajv(o.nome, k); if (Number.isFinite(v)) { inp.value = v; inp.style.borderColor = 'var(--cds-chart-reference)'; inp.style.fontWeight = '600'; }
         inp.addEventListener('change', () => {
           aj[o.nome] = aj[o.nome] || {};
           if (inp.value === '') delete aj[o.nome][k];
           else { const nv = Number(inp.value); if (!Number.isFinite(nv) || nv < 0) { inp.setAttribute('aria-invalid', 'true'); inp.style.borderColor = 'var(--color-bad)'; return; } aj[o.nome][k] = nv; }
-          saveAj(); dash.setParams({});
+          saveAj(); setTimeout(() => dash.setParams({}), 0);
         });
-        td.appendChild(inp); tr.appendChild(td);
+        c.appendChild(inp);
       }
+      const cc = td(tr, brl0(o.custo), 'n'); cc.style.fontWeight = '600';
+      td(tr, o.km ? f1(o.km) : '—', 'n');
+      const ck = td(tr, o.km ? brl2(o.custo / o.km) : '—', 'n'); ck.style.fontWeight = '600';
+      tr.title = `Pessoal ${brl0(o.pessoal)} · Hotel ${brl0(o.hotel)} (${f0(o.noites || 0)} noites) · Locação ${brl0(o.locacao)} · Combustível ${brl0(o.combustivel)} (${f0(o.diasOp || 0)} dias em operação)${o.outros ? ' · Outros ' + brl0(o.outros) : ''}`;
       tb.appendChild(tr);
     }
+    const tot = (k) => d3.sum(linhas, (o) => o[k]);
+    const tr = document.createElement('tr'); const tt = (txt, cls) => { const c = td(tr, txt, cls); c.style.fontWeight = '600'; return c; };
+    tt('Total'); tt(per(linhas[0].ini, linhas[linhas.length - 1].fim)).style.whiteSpace = 'nowrap';
+    for (let i = 0; i < AJ.length; i++) tt('', 'n');
+    tt(brl0(tot('custo')), 'n'); tt(f1(tot('km')), 'n'); tt(brl2(tot('custo') / tot('km')), 'n');
+    tb.appendChild(tr);
   }
   document.getElementById('cc-aj-limpar').addEventListener('click', () => { aj = {}; saveAj(); dash.setParams({}); });
   document.getElementById('cc-limpar').addEventListener('click', () => { real = {}; saveReal(); dash.setParams({}); });
@@ -566,6 +589,7 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
   dash.onData(() => {
     const p = { ...dash.params() }; p.km_dia = Number(p.km_dia);
     if (!(p.km_dia >= 10)) return;
+    const foco = document.activeElement && document.activeElement.closest && document.activeElement.closest('#custo-ciclo') ? document.activeElement.getAttribute('aria-label') : null;
     const s = simular(p.km_dia, p);
     const linhas = porCiclo(s, p);
     drawAjustes(linhas, p);
@@ -573,9 +597,10 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     const nAj = Object.values(aj).reduce((a, x) => a + Object.keys(x || {}).length, 0);
     const dif = d3.sum(linhas, (o) => o.custo) - s.total;
     const av = document.getElementById('cc-aj-aviso'); av.hidden = !nAj;
-    if (nAj) av.textContent = `Com os ajustes por ciclo, o custo previsto soma ${brl0(d3.sum(linhas, (o) => o.custo))}, ${brl0(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'} da simulação geral (${brl0(s.total)}).`;
+    if (nAj) av.textContent = `Com os recursos definidos por ciclo, o custo previsto soma ${brl0(d3.sum(linhas, (o) => o.custo))}, ${brl0(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'} da simulação geral (${brl0(s.total)}).`;
     drawTake(linhas, rr);
     drawChart(document.getElementById('cc-chart'), linhas);
+    if (foco) { const el = document.querySelector(`#custo-ciclo input[aria-label="${CSS.escape(foco)}"]`); if (el) el.focus(); }
     window.__ccCheck = { soma: d3.sum(linhas, (o) => o.custo), total: s.total, linhas };
   });
 })();
