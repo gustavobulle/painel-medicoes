@@ -980,11 +980,11 @@ select.ed { padding-right: 2px; }
       h += `<td class="l"><button type="button" class="chip ${st}" data-lc="${esc(c.id)}" data-m="${ref}" title="${esc(lancTitle(c, ref))}">${STATUS[st].icon}${STATUS[st].t}${dt ? `<small class="num">${dt}</small>` : ''}</button></td>`;
       const sc = saldoCore(c);
       if (sc) totSaldo += sc.saldo;
-      h += `<td class="num">${R(acc)}</td><td class="num" id="sd-${esc(c.id)}">${saldoCell(sc)}</td></tr>`;
+      h += `<td class="num" id="acc-${esc(c.id)}">${R(acc)}</td><td class="num" id="sd-${esc(c.id)}">${saldoCell(sc)}</td></tr>`;
     });
     h += `</tbody><tfoot><tr><td class="l stick">Total</td><td></td>`;
-    ms.forEach(m => h += `<td class="num ${m === ref ? 'ref' : ''}">${tots[m] != null ? R(tots[m]) : '—'}</td>`);
-    h += `<td></td><td class="num">${R(totAll)}</td><td class="num">${R(totSaldo)}</td></tr></tfoot></table>`;
+    ms.forEach(m => h += `<td class="num ${m === ref ? 'ref' : ''}" id="tot-${m}">${tots[m] != null ? R(tots[m]) : '—'}</td>`);
+    h += `<td></td><td class="num" id="tot-acc">${R(totAll)}</td><td class="num">${R(totSaldo)}</td></tr></tfoot></table>`;
     wrap.innerHTML = h;
   }
 
@@ -1163,8 +1163,22 @@ select.ed { padding-right: 2px; }
   function showBanner(t) { const b = $('banner'); b.textContent = t; b.hidden = false; }
 
   const gw = $('gridWrap');
+  // Totais da grade (linha Total = soma de cada coluna do mês; Acumulado = soma da linha) recalculados enquanto digita
+  function updGridTotals() {
+    const cols = {}, rows = {}; let all = 0;
+    gw.querySelectorAll('input.cell').forEach(inp => {
+      const c = byId(inp.dataset.c), m = inp.dataset.m;
+      let v = parseBR(inp.value);
+      if (Number.isNaN(v)) v = c ? (c.valores || {})[m] ?? null : null;
+      if (v == null) return;
+      cols[m] = (cols[m] || 0) + v; rows[inp.dataset.c] = (rows[inp.dataset.c] || 0) + v; all += v;
+    });
+    gw.querySelectorAll('[id^="tot-"]').forEach(td => { const m = td.id.slice(4); if (m === 'acc') td.textContent = R(all); else td.textContent = cols[m] != null ? R(cols[m]) : '—'; });
+    gw.querySelectorAll('[id^="acc-"]').forEach(td => { td.textContent = R(rows[td.id.slice(4)] || 0); });
+  }
   gw.addEventListener('input', e => {
     if (!e.target.classList.contains('cell')) return;
+    updGridTotals();
     const c = byId(e.target.dataset.c); if (!c) return;
     const v = parseBR(e.target.value);
     const td = $('sd-' + c.id); if (!td) return;
