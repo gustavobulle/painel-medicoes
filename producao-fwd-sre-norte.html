@@ -338,18 +338,23 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     <h2>Custo por ciclo</h2>
     <p class="fx-take" id="cc-take">—</p>
     <p class="fx-note">Custo previsto de cada ciclo com o período e os recursos definidos abaixo (ou as premissas gerais), comparado à medição do ciclo (percentual do cronograma REV03 × R$ 347.656,19). A produção de cada ciclo é a prevista na simulação, ou o km realizado que você informar; a medição continua sendo o percentual do cronograma.</p>
+    <h3 style="margin:8px 0 0;font-size:var(--cds-font-size-body);font-weight:600">Equipe e veículos em obra</h3>
+    <p class="fx-note">Cadastre cada pessoa com o salário mensal e os encargos, e cada veículo com a locação e o combustível mensais. Marque em quais ciclos cada um fica alocado. O custo por dia é o custo mensal ÷ 30; o custo no período soma os dias corridos dos ciclos marcados (o combustível conta só os dias em operação, fora do recesso). Enquanto você não editar, a lista segue as quantidades e valores da simulação acima.</p>
+    <div class="fx-tablebox" style="max-height:none"><table id="tab-equipe"></table></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="fx-btn" id="cc-add-pessoa">+ Adicionar pessoa</button></div>
+    <div class="fx-tablebox" style="max-height:none"><table id="tab-veiculos"></table></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px"><button type="button" class="fx-btn" id="cc-add-veiculo">+ Adicionar veículo</button><button type="button" class="fx-btn" id="cc-eq-limpar">Voltar à equipe da simulação</button></div>
     <h3 style="margin:8px 0 0;font-size:var(--cds-font-size-body);font-weight:600">Recursos alocados por ciclo</h3>
-    <p class="fx-note">Edite o início e o fim de cada ciclo conforme a produtividade real, e defina pessoas, veículos, diária de hotel (por pessoa, por noite) e combustível (mensal, por veículo). Se você mudar só o início ou só o fim de um ciclo, os ciclos seguintes andam junto, mantendo a quantidade de dias de campo da simulação; datas em azul são as que você fixou. Informe também o km realizado de cada ciclo (o previsto aparece em cinza). O painel mostra os dias de campo, os km/dia necessários (em vermelho quando passam de 15% acima da produção da simulação), o custo do período e o custo por km. Campo vazio usa a premissa geral, que aparece em cinza. Pessoal e locação contam todos os dias corridos; hotel conta as noites fora do recesso; combustível conta os dias em operação. Passe o mouse sobre a linha para ver a composição.</p>
+    <p class="fx-note">Edite o início e o fim de cada ciclo conforme a produtividade real; se mudar só uma data, os ciclos seguintes andam junto, mantendo os dias de campo da simulação (datas em azul são as que você fixou). Pessoas e veículos vêm da alocação acima. Informe a diária de hotel (por pessoa, por noite), o combustível mensal por veículo se quiser um valor único para o ciclo (vazio usa o de cada veículo), outros custos e o km realizado (o previsto aparece em cinza). O painel mostra os dias de campo, os km/dia necessários (em vermelho quando passam de 15% acima da produção da simulação), o custo por dia, o custo do ciclo e o custo por km. Pessoal e locação contam todos os dias corridos; hotel conta as noites fora do recesso; combustível conta os dias em operação. Passe o mouse sobre a linha para ver a composição.</p>
     <div class="fx-tablebox" style="max-height:none">
       <table id="tab-ajustes">
         <thead><tr>
           <th><button type="button" tabindex="-1">Ciclo</button></th>
           <th><button type="button" tabindex="-1">Período</button></th>
-          <th class="n"><button type="button" tabindex="-1">Pessoas</button></th>
-          <th class="n"><button type="button" tabindex="-1">Veículos</button></th>
           <th class="n"><button type="button" tabindex="-1">Hotel/noite</button></th>
           <th class="n"><button type="button" tabindex="-1">Comb./mês</button></th>
           <th class="n"><button type="button" tabindex="-1">Outros</button></th>
+          <th class="n"><button type="button" tabindex="-1">Custo/dia</button></th>
           <th class="n"><button type="button" tabindex="-1">Custo do ciclo</button></th>
           <th class="n"><button type="button" tabindex="-1">km</button></th>
           <th class="n"><button type="button" tabindex="-1">Custo/km</button></th>
@@ -827,7 +832,20 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
   let aj = {};
   try { const o = JSON.parse(localStorage.getItem(KEY_AJ) || 'null'); if (o && typeof o === 'object') aj = o; } catch (e) {}
   const saveAj = () => { try { localStorage.setItem(KEY_AJ, JSON.stringify(aj)); } catch (e) {} };
-  const AJ = [['colaboradores', 'Pessoas', 1], ['veiculos', 'Veículos', 1], ['diaria_hotel', 'Diária de hotel por pessoa (R$)', 10], ['combustivel', 'Combustível mensal por veículo (R$)', 100], ['outros', 'Outros custos do ciclo (R$)', 100]];
+  const AJ = [['diaria_hotel', 'Diária de hotel por pessoa (R$)', 10], ['combustivel', 'Combustível mensal por veículo (R$)', 100], ['outros', 'Outros custos do ciclo (R$)', 100]];
+  // Equipe e veículos nominais: salário/encargos de cada pessoa, locação/combustível de cada veículo e em quais ciclos cada um está alocado
+  const KEY_EQ = 'fwd-sre-norte-equipe';
+  let eq = null;
+  try { const o = JSON.parse(localStorage.getItem(KEY_EQ) || 'null'); if (o && Array.isArray(o.pessoas) && Array.isArray(o.veiculos)) eq = o; } catch (e) {}
+  const saveEq = () => { try { if (eq) localStorage.setItem(KEY_EQ, JSON.stringify(eq)); else localStorage.removeItem(KEY_EQ); } catch (e) {} };
+  const eqPadrao = (p) => ({
+    pessoas: Array.from({ length: Math.max(0, Math.round(num(p.colaboradores, 0))) }, (_, i) => ({ nome: `Colaborador ${i + 1}`, salario: num(p.salario, 0), enc: num(p.encargos_pct, 0), fora: [] })),
+    veiculos: Array.from({ length: Math.max(0, Math.round(num(p.veiculos, 0))) }, (_, i) => ({ nome: `Veículo ${i + 1}`, locacao: num(p.locacao, 0), comb: num(p.combustivel, 0), fora: [] }))
+  });
+  const equipe = (p) => eq || eqPadrao(p);
+  const aloc = (x, n) => !(x.fora || []).includes(n);
+  const mexeEq = (p, fn) => { if (!eq) eq = JSON.parse(JSON.stringify(eqPadrao(p))); fn(eq); saveEq(); setTimeout(() => dash.setParams({}), 0); };
+  const custoMes = (x) => num(x.salario, 0) * (1 + num(x.enc, 0) / 100);
   const val = (n, k, p) => Number.isFinite(ajv(n, k)) ? ajv(n, k) : (k === 'outros' ? 0 : num(p[k], 0));
   const ajv = (nome, k) => { const v = aj[nome] && aj[nome][k]; return v === undefined || v === null || v === '' ? NaN : Number(v); };
   const COMP = [['pessoal', 'Pessoal'], ['hotel', 'Hotel'], ['locacao', 'Locação'], ['combustivel', 'Combustível'], ['outros', 'Outros']];
@@ -863,8 +881,14 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
   }
 
   function porCiclo(s, p) {
-    const cmes = num(p.salario, 0) * (1 + num(p.encargos_pct, 0) / 100);
-    const R = (n) => ({ col: val(n, 'colaboradores', p), vei: val(n, 'veiculos', p), hot: val(n, 'diaria_hotel', p), comb: val(n, 'combustivel', p) });
+    const E = equipe(p);
+    const R = (n) => {
+      const pes = E.pessoas.filter((x) => aloc(x, n)), vei = E.veiculos.filter((x) => aloc(x, n));
+      const combOv = ajv(n, 'combustivel');
+      return { col: pes.length, vei: vei.length, hot: val(n, 'diaria_hotel', p), combOv,
+        pDia: d3.sum(pes, custoMes) / C.DIAS_MES, lDia: d3.sum(vei, (x) => num(x.locacao, 0)) / C.DIAS_MES,
+        cDia: d3.sum(vei, (x) => Number.isFinite(combOv) ? combOv : num(x.comb, 0)) / C.DIAS_MES };
+    };
     const pers = periodos(s);
     const ultimoCampo = pers[pers.length - 2].fim;
     return pers.map((pp) => {
@@ -872,8 +896,8 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
       const o = { nome: n, ini: pp.ini, fim: pp.fim, km: pp.km, kmPlan: pp.kmPlan || 0, kmReal: !!pp.kmReal, rec: r, pessoal: 0, hotel: 0, locacao: 0, combustivel: 0, outros: val(n, 'outros', p), diasCorr: 0, diasCampo: 0, diasOp: 0, noites: 0,
         medicao: n === MOB ? C.MOBILIZACAO_PCT * C.VALOR_RECEBER : n === DESMOB ? 0 : (C.CICLOS.find((c) => c[0] === n) || [, 0])[1] * C.VALOR_RECEBER };
       for (let x = pp.ini; x <= pp.fim; x = dia(x, 1)) {
-        o.diasCorr++; o.pessoal += r.col * cmes / C.DIAS_MES; o.locacao += r.vei * num(p.locacao, 0) / C.DIAS_MES;
-        if (!ehRec(x)) { o.combustivel += r.vei * r.comb / C.DIAS_MES; o.diasOp++; }
+        o.diasCorr++; o.pessoal += r.pDia; o.locacao += r.lDia;
+        if (!ehRec(x)) { o.combustivel += r.cDia; o.diasOp++; }
         // Hotel: noites fora do recesso; não há pernoite no último dia de campo nem na desmobilização
         if (!ehRec(x) && n !== DESMOB && x < ultimoCampo) { o.hotel += r.col * r.hot; o.noites++; }
         if (n !== MOB && n !== DESMOB && ehCampo(x)) o.diasCampo++;
@@ -1024,14 +1048,16 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
       const l2 = document.createElement('div'); l2.className = 'fx-sub';
       const kmd = o.km && o.diasCampo ? ` · ${f1(o.km / o.diasCampo)} km/dia` : '';
       l2.textContent = `${f0(o.diasCorr)} ${o.diasCorr === 1 ? 'dia corrido' : 'dias corridos'}` + (o.nome === MOB || o.nome === DESMOB ? '' : ` · ${f0(o.diasCampo)} de campo${kmd}`);
+      const l3 = document.createElement('div'); l3.className = 'fx-sub'; l3.textContent = `${f0(o.rec.col)} ${o.rec.col === 1 ? 'pessoa' : 'pessoas'} · ${f0(o.rec.vei)} ${o.rec.vei === 1 ? 'veículo' : 'veículos'}`;
       if (o.km && o.diasCampo && o.km / o.diasCampo > 1.15 * Number(p.km_dia)) l2.classList.add('fx-badv');
-      pc.append(box, l2);
+      pc.append(box, l2, l3);
       for (const [k, lab, step] of AJ) {
         const c = td(tr, '', 'n');
         const inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.step = String(step); inp.inputMode = 'decimal';
-        inp.placeholder = k === 'outros' ? '0' : loc.format(',.0f')(num(p[k], 0));
+        inp.placeholder = k === 'outros' ? '0' : k === 'combustivel' ? 'da lista' : loc.format(',.0f')(num(p[k], 0));
+        if (k === 'combustivel') inp.title = 'Vazio: usa o combustível mensal de cada veículo da lista. Preenchido: vale para todos os veículos neste ciclo.';
         inp.setAttribute('aria-label', `${lab} · ${o.nome}`);
-        const w = k === 'colaboradores' || k === 'veiculos' ? '3.2rem' : '5rem';
+        const w = '5rem';
         inp.style.cssText = `width:${w};box-sizing:border-box;padding:2px 6px;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg);font:inherit;text-align:right`;
         const v = ajv(o.nome, k); if (Number.isFinite(v)) { inp.value = v; inp.style.borderColor = 'var(--cds-chart-reference)'; inp.style.fontWeight = '600'; }
         inp.addEventListener('change', () => {
@@ -1042,6 +1068,7 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
         });
         c.appendChild(inp);
       }
+      td(tr, o.diasCorr ? brl0(o.custo / o.diasCorr) : '—', 'n');
       const cc = td(tr, brl0(o.custo), 'n'); cc.style.fontWeight = '600';
       const ck0 = td(tr, '', 'n');
       if (o.nome === MOB || o.nome === DESMOB) ck0.textContent = '—';
@@ -1067,9 +1094,76 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     const tr = document.createElement('tr'); const tt = (txt, cls) => { const c = td(tr, txt, cls); c.style.fontWeight = '600'; return c; };
     tt('Total'); tt(per(linhas[0].ini, linhas[linhas.length - 1].fim)).style.whiteSpace = 'nowrap';
     for (let i = 0; i < AJ.length; i++) tt('', 'n');
-    tt(brl0(tot('custo')), 'n'); tt(f1(tot('km')), 'n'); tt(brl2(tot('custo') / tot('km')), 'n');
+    tt(brl0(tot('custo') / tot('diasCorr')), 'n'); tt(brl0(tot('custo')), 'n'); tt(f1(tot('km')), 'n'); tt(brl2(tot('custo') / tot('km')), 'n');
     tb.appendChild(tr);
   }
+  const abrev = (n) => n === MOB ? 'Mob.' : n === DESMOB ? 'Desm.' : n.replace('Ciclo ', 'C');
+  const inBox = (w, al = 'right') => `width:${w};box-sizing:border-box;padding:2px 6px;border:1px solid var(--color-border-line);border-radius:var(--cds-radius);background:var(--color-bg);color:var(--color-fg);font:inherit;text-align:${al}`;
+  function drawEquipe(linhas, p) {
+    const E = equipe(p);
+    const nomes = linhas.map((o) => o.nome), porNome = new Map(linhas.map((o) => [o.nome, o]));
+    const mk = (tag, txt, cls) => { const e = document.createElement(tag); if (txt !== undefined) e.textContent = txt; if (cls) e.className = cls; return e; };
+    const tabela = (id, tipo, lista, cols, custoDia, custoPeriodo) => {
+      const t = document.getElementById(id); t.replaceChildren();
+      const th = mk('thead'), hr = mk('tr');
+      const hcell = (txt, cls, title) => { const c = mk('th', undefined, cls); const b = mk('button', txt); b.type = 'button'; b.tabIndex = -1; c.appendChild(b); if (title) c.title = title; hr.appendChild(c); };
+      cols.forEach(([lab, cls]) => hcell(lab, cls));
+      nomes.forEach((n) => hcell(abrev(n), 'n', `${n} (${per(porNome.get(n).ini, porNome.get(n).fim)})`));
+      hcell('Dias', 'n', 'Dias corridos alocado'); hcell('Custo/dia', 'n'); hcell('Custo no período', 'n'); hcell('', '');
+      th.appendChild(hr); t.appendChild(th);
+      const tb = mk('tbody');
+      lista.forEach((x, i) => {
+        const tr = mk('tr'); const lab = `${tipo} ${i + 1}`;
+        const campo = (k, w, tipoIn, al, step) => {
+          const c = mk('td', undefined, al === 'left' ? '' : 'n'); const inp = mk('input'); inp.type = tipoIn; inp.style.cssText = inBox(w, al);
+          if (tipoIn === 'number') { inp.min = '0'; inp.step = step; inp.inputMode = 'decimal'; }
+          inp.value = x[k] ?? ''; inp.setAttribute('aria-label', `${cols.find((cc) => cc[2] === k)[0]} · ${lab}`);
+          inp.addEventListener('change', () => {
+            if (tipoIn === 'number') { const v = Number(inp.value); if (inp.value === '' || !Number.isFinite(v) || v < 0) { inp.setAttribute('aria-invalid', 'true'); inp.style.borderColor = 'var(--color-bad)'; return; } mexeEq(p, (e) => { e[tipo === 'Pessoa' ? 'pessoas' : 'veiculos'][i][k] = v; }); }
+            else mexeEq(p, (e) => { e[tipo === 'Pessoa' ? 'pessoas' : 'veiculos'][i][k] = inp.value.trim() || `${tipo} ${i + 1}`; });
+          });
+          c.appendChild(inp); tr.appendChild(c);
+        };
+        cols.forEach(([, , k, w, tipoIn, al, step]) => { if (k) campo(k, w, tipoIn, al, step); else { const c = mk('td', w(x), 'n'); tr.appendChild(c); } });
+        let dias = 0;
+        nomes.forEach((n) => {
+          const c = mk('td', undefined, 'n'); c.style.textAlign = 'center';
+          const cb = mk('input'); cb.type = 'checkbox'; cb.checked = aloc(x, n); cb.setAttribute('aria-label', `${lab} em ${n}`); cb.title = `${x.nome} em ${n}`;
+          cb.addEventListener('change', () => mexeEq(p, (e) => { const it = e[tipo === 'Pessoa' ? 'pessoas' : 'veiculos'][i]; it.fora = (it.fora || []).filter((f) => f !== n); if (!cb.checked) it.fora.push(n); }));
+          c.appendChild(cb); tr.appendChild(c);
+          if (aloc(x, n)) dias += porNome.get(n).diasCorr;
+        });
+        tr.appendChild(mk('td', f0(dias), 'n'));
+        tr.appendChild(mk('td', brl2(custoDia(x)), 'n'));
+        const cp = mk('td', brl0(custoPeriodo(x)), 'n'); cp.style.fontWeight = '600'; tr.appendChild(cp);
+        const cx = mk('td'); const rm = mk('button', '×', 'fx-btn'); rm.type = 'button'; rm.style.padding = '0 8px'; rm.setAttribute('aria-label', `Remover ${lab}`); rm.title = `Remover ${x.nome}`;
+        rm.addEventListener('click', () => mexeEq(p, (e) => { e[tipo === 'Pessoa' ? 'pessoas' : 'veiculos'].splice(i, 1); }));
+        cx.appendChild(rm); tr.appendChild(cx);
+        tb.appendChild(tr);
+      });
+      const tr = mk('tr'); const tt = (txt, cls) => { const c = mk('td', txt, cls); c.style.fontWeight = '600'; tr.appendChild(c); return c; };
+      tt(`Total · ${lista.length} ${tipo === 'Pessoa' ? (lista.length === 1 ? 'pessoa' : 'pessoas') : (lista.length === 1 ? 'veículo' : 'veículos')}`);
+      cols.slice(1).forEach(([, , k, , , , , totf]) => tt(totf ? totf(lista) : '', 'n'));
+      nomes.forEach((n) => tt(f0(lista.filter((x) => aloc(x, n)).length), 'n').style.textAlign = 'center');
+      tt('', 'n'); tt(brl2(d3.sum(lista, custoDia)), 'n'); tt(brl0(d3.sum(lista, custoPeriodo)), 'n'); tt('');
+      tb.appendChild(tr); t.appendChild(tb);
+    };
+    tabela('tab-equipe', 'Pessoa', E.pessoas, [
+      ['Nome / função', '', 'nome', '9.5rem', 'text', 'left'],
+      ['Salário mensal (R$)', 'n', 'salario', '5.6rem', 'number', 'right', '100', (l) => brl0(d3.sum(l, (x) => num(x.salario, 0)))],
+      ['Encargos (%)', 'n', 'enc', '4rem', 'number', 'right', '1'],
+      ['Custo mensal', 'n', null, (x) => brl0(custoMes(x)), null, null, null, (l) => brl0(d3.sum(l, custoMes))]
+    ], (x) => custoMes(x) / C.DIAS_MES, (x) => d3.sum(linhas.filter((o) => aloc(x, o.nome)), (o) => custoMes(x) / C.DIAS_MES * o.diasCorr));
+    const combDe = (x, o) => Number.isFinite(o.rec.combOv) ? o.rec.combOv : num(x.comb, 0);
+    tabela('tab-veiculos', 'Veículo', E.veiculos, [
+      ['Descrição / placa', '', 'nome', '9.5rem', 'text', 'left'],
+      ['Locação mensal (R$)', 'n', 'locacao', '5.6rem', 'number', 'right', '100', (l) => brl0(d3.sum(l, (x) => num(x.locacao, 0)))],
+      ['Combustível mensal (R$)', 'n', 'comb', '5.6rem', 'number', 'right', '100', (l) => brl0(d3.sum(l, (x) => num(x.comb, 0)))]
+    ], (x) => (num(x.locacao, 0) + num(x.comb, 0)) / C.DIAS_MES, (x) => d3.sum(linhas.filter((o) => aloc(x, o.nome)), (o) => num(x.locacao, 0) / C.DIAS_MES * o.diasCorr + combDe(x, o) / C.DIAS_MES * o.diasOp));
+  }
+  document.getElementById('cc-add-pessoa').addEventListener('click', () => { const p = dash.params(); mexeEq(p, (e) => e.pessoas.push({ nome: `Colaborador ${e.pessoas.length + 1}`, salario: num(p.salario, 0), enc: num(p.encargos_pct, 0), fora: [] })); });
+  document.getElementById('cc-add-veiculo').addEventListener('click', () => { const p = dash.params(); mexeEq(p, (e) => e.veiculos.push({ nome: `Veículo ${e.veiculos.length + 1}`, locacao: num(p.locacao, 0), comb: num(p.combustivel, 0), fora: [] })); });
+  document.getElementById('cc-eq-limpar').addEventListener('click', () => { eq = null; saveEq(); dash.setParams({}); });
   document.getElementById('cc-aj-limpar').addEventListener('click', () => { aj = {}; saveAj(); dash.setParams({}); });
   document.getElementById('cc-limpar').addEventListener('click', () => { real = {}; saveReal(); dash.setParams({}); });
   drawLegend();
@@ -1079,18 +1173,19 @@ let fxRT; window.addEventListener('resize', () => { clearTimeout(fxRT); fxRT = s
     const foco = document.activeElement && document.activeElement.closest && document.activeElement.closest('#custo-ciclo') ? document.activeElement.getAttribute('aria-label') : null;
     const s = simular(p.km_dia, p);
     const linhas = porCiclo(s, p);
+    drawEquipe(linhas, p);
     drawAjustes(linhas, p);
     const rr = drawTable(linhas);
-    const nAj = Object.values(aj).reduce((a, x) => a + Object.keys(x || {}).length, 0);
+    const nAj = Object.values(aj).reduce((a, x) => a + Object.keys(x || {}).length, 0) + (eq ? 1 : 0);
     const ultimo = linhas[linhas.length - 2];
     const dif = d3.sum(linhas, (o) => o.custo) - s.total;
     const av = document.getElementById('cc-aj-aviso'); av.hidden = !nAj;
-    if (nAj) { av.textContent = (Math.abs(dif) >= 1 ? `Com os períodos e recursos definidos por ciclo, o custo previsto soma ${brl0(d3.sum(linhas, (o) => o.custo))}, ${brl0(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'} da simulação geral (${brl0(s.total)}). ` : '') + `Último dia de campo: ${dmy(ultimo.fim)}` + (ultimo.fim > prazo ? `, depois do prazo de ${dmy(prazo)}.` : `, dentro do prazo de ${dmy(prazo)}.`); av.className = 'fx-note' + (ultimo.fim > prazo ? ' fx-badv' : ''); }
+    if (nAj) { av.textContent = (Math.abs(dif) >= 1 ? `Com a equipe, os períodos e os recursos definidos por ciclo, o custo previsto soma ${brl0(d3.sum(linhas, (o) => o.custo))}, ${brl0(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'} da simulação geral (${brl0(s.total)}). ` : '') + `Último dia de campo: ${dmy(ultimo.fim)}` + (ultimo.fim > prazo ? `, depois do prazo de ${dmy(prazo)}.` : `, dentro do prazo de ${dmy(prazo)}.`); av.className = 'fx-note' + (ultimo.fim > prazo ? ' fx-badv' : ''); }
     const kmTot = d3.sum(linhas, (o) => o.km), nKm = linhas.filter((o) => o.kmReal).length;
     if (nKm && Math.abs(kmTot - C.KM_TOTAL) > 0.05) { av.hidden = false; av.textContent += ` A soma dos km dos ciclos dá ${f1(kmTot)} km, ${f1(Math.abs(kmTot - C.KM_TOTAL))} km ${kmTot > C.KM_TOTAL ? 'acima' : 'abaixo'} dos ${f1(C.KM_TOTAL)} km contratados; ajuste os ciclos seguintes se a diferença for ficar para eles.`; }
     drawTake(linhas, rr);
     drawChart(document.getElementById('cc-chart'), linhas);
-    if (foco) { const el = document.querySelector(`#custo-ciclo input[aria-label="${CSS.escape(foco)}"]`); if (el) el.focus(); }
+    if (foco) { const el = document.querySelector(`#custo-ciclo input[aria-label="${CSS.escape(foco)}"]`); if (el) { el.focus(); if (el.type === 'number' || el.type === 'text') try { el.select(); } catch (e) {} } }
     window.__ccCheck = { soma: d3.sum(linhas, (o) => o.custo), total: s.total, linhas };
   });
 })();
